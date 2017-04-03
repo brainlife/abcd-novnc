@@ -1,0 +1,25 @@
+{
+  "name": "abcd-novnc",
+  "version": "1.0.0",
+  "description": "Service to launch noVNC session with specified docker container",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "start.sh",
+    "stop": "stop.sh",
+    "status": "status.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soichih/abcd-novnc.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/soichih/abcd-novnc/issues"
+  },
+  "homepage": "https://github.com/soichih/abcd-novnc#readme",
+  "dependencies": {
+    "tcp-port-used": "^0.1.2"
+  }
+}
