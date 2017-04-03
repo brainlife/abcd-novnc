@@ -3,6 +3,7 @@ const config = require('./config');
 const spawn = require('child_process').spawn;
 const fs = require('fs');
 const tcpportused = require('tcp-port-used');
+const os = require('os'); 
 
 //statis config for now..
 const minport=11000;
@@ -61,8 +62,8 @@ cont.on('close', (code)=>{
                     //start noVNC
                     const novnc_out = fs.openSync('./novnc.log', 'a');
                     const novnc_err = fs.openSync('./novnc.log', 'a');
-                    console.log('/home/hayashis/git/noVNC/utils/launch.sh', '--listen', port, '--vnc', hostport);
-                    const novnc = spawn('/home/hayashis/git/noVNC/utils/launch.sh', ['--listen', port, '--vnc', hostport], {
+                    console.log('/usr/local/noVNC/utils/launch.sh', '--listen', port, '--vnc', hostport);
+                    const novnc = spawn('/usr/local/noVNC/utils/launch.sh', ['--listen', port, '--vnc', hostport], {
                         detached: true, stdio: ['ignore', novnc_out, novnc_err]
                     });
                     novnc.unref();
@@ -70,7 +71,7 @@ cont.on('close', (code)=>{
                     console.log("started novnc", novnc.pid);
                     fs.writeFileSync("novnc.pid", novnc.pid);
 
-                    var url = "http://dev1.soichi.us:"+port+"/vnc_auto.html?password="+token;
+                    var url = "http://"+os.hostname()+":"+port+"/vnc_auto.html?password="+token;
                     fs.writeFileSync("url.txt", url);
                     console.log("all done", url);
                 }, function(err) {
