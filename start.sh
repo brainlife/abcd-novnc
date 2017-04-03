@@ -5,6 +5,7 @@ if [ -z $INST_DIR ]; then export INST_DIR=`pwd`; fi
 #if [ -z $TASK_DIR ]; then export TASK_DIR=`pwd`; fi
 if [ -z $SERVICE_DIR ]; then export SERVICE_DIR=`pwd`; fi
 
+(cd $SERVICE_DIR && npm install)
 node $SERVICE_DIR/setup
 
 #echo "starting docker container"
