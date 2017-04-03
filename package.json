@@ -20,6 +20,6 @@
   },
   "homepage": "https://github.com/soichih/abcd-novnc#readme",
   "dependencies": {
-    "tcp-port-used": "^0.1.2"
+    "tcp-port-used": "soichih/tcp-port-used"
   }
 }
