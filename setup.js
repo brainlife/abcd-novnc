@@ -1,10 +1,12 @@
 
-const config = require('./config');
 const spawn = require('child_process').spawn;
 const fs = require('fs');
 const tcpportused = require('tcp-port-used');
 const os = require('os'); 
 const path = require('path');
+
+//load config from local directory
+const config = require(process.cwd()+'/config.json');
 
 //statis config for now..
 const minport=11000;
