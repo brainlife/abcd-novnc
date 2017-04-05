@@ -20,8 +20,9 @@ console.log("starting container");
 //TODO validate config.input_task_id
 //TODO validate config.container
 //const cont = spawn('docker', ['run', '-dP', '-v', process.env.INST_DIR+'/'+config.input_task_id+':/input:ro', config.container]); 
-var src_path = '../'+config.input_instance_id+'/'+config.input_task_id;
+var src_path = '../../'+config.input_instance_id+'/'+config.input_task_id;
 var abs_src_path = path.resolve(src_path);
+console.log('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', config.container]); 
 const cont = spawn('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', config.container]); 
 var cont_id = "";
 cont.stdout.on('data', (data)=>{
