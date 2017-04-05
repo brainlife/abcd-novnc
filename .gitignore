@@ -1,6 +1,7 @@
 1234567
 node_modules
 cont.id
+config.json
 novnc.log
 novnc.pid
 url.txt
