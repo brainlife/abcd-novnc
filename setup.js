@@ -27,7 +27,7 @@ var abs_src_path = path.resolve(src_path);
 
 switch(config.type) {
 case "fslview":
-    var container_name = "soichih/vncserver-fsl"; break;
+    var container_name = "soichih/vncserver-fslview"; break;
 case "freeview":
     var container_name = "soichih/vncserver-freeview"; break;
 case "mrview":
