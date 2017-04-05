@@ -20,11 +20,21 @@ console.log("starting container");
 //start docker container
 //TODO validate config.input_instance_id
 //TODO validate config.input_task_id
-//TODO validate config.container
+//TODO validate config.type
 //const cont = spawn('docker', ['run', '-dP', '-v', process.env.INST_DIR+'/'+config.input_task_id+':/input:ro', config.container]); 
 var src_path = '../../'+config.input_instance_id+'/'+config.input_task_id;
 var abs_src_path = path.resolve(src_path);
-console.log('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', config.container]); 
+
+switch(config.type) {
+case "fslview":
+    var container_name = "soichih/vncserver-fsl"; break;
+case "freeview":
+    var container_name = "soichih/vncserver-freeview"; break;
+case "mrview":
+    var container_name = "soichih/vncserver-mrview"; break;
+}
+
+console.log('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', container_name]); 
 const cont = spawn('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', config.container]); 
 var cont_id = "";
 cont.stdout.on('data', (data)=>{
