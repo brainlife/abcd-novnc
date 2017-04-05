@@ -4,6 +4,7 @@ const spawn = require('child_process').spawn;
 const fs = require('fs');
 const tcpportused = require('tcp-port-used');
 const os = require('os'); 
+const path = require('path');
 
 //statis config for now..
 const minport=11000;
@@ -15,9 +16,13 @@ console.dir(config);
 console.log("starting container");
 
 //start docker container
+//TODO validate config.input_instance_id
 //TODO validate config.input_task_id
 //TODO validate config.container
-const cont = spawn('docker', ['run', '-dP', '-v', process.env.INST_DIR+'/'+config.input_task_id+':/input:ro', config.container]); 
+//const cont = spawn('docker', ['run', '-dP', '-v', process.env.INST_DIR+'/'+config.input_task_id+':/input:ro', config.container]); 
+var src_path = '../'+config.input_instance_id+'/'+config.input_task_id;
+var abs_src_path = path.resolve(src_path);
+const cont = spawn('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', config.container]); 
 var cont_id = "";
 cont.stdout.on('data', (data)=>{
     cont_id+=data.toString().trim();

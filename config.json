@@ -1,4 +1,5 @@
 {
+	"input_instance_id": "abcd-novnc",
 	"input_task_id": "1234567",
 	"container": "soichih/vncserver-fsl"
 }
