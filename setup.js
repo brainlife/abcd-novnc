@@ -25,13 +25,16 @@ console.log("starting container");
 var src_path = '../../'+config.input_instance_id+'/'+config.input_task_id;
 var abs_src_path = path.resolve(src_path);
 
+var container_name = null;
 switch(config.type) {
 case "fslview":
-    var container_name = "soichih/vncserver-fslview"; break;
+    container_name = "soichih/vncserver-fslview"; break;
 case "freeview":
-    var container_name = "soichih/vncserver-freeview"; break;
+    container_name = "soichih/vncserver-freeview"; break;
 case "mrview":
-    var container_name = "soichih/vncserver-mrview"; break;
+    container_name = "soichih/vncserver-mrview"; break;
+default:
+    console.error("unknown container type", config.type);
 }
 
 console.log('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', container_name]); 
