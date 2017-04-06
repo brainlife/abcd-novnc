@@ -35,7 +35,7 @@ case "mrview":
 }
 
 console.log('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', container_name]); 
-const cont = spawn('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', config.container]); 
+const cont = spawn('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', container_name]); 
 var cont_id = "";
 cont.stdout.on('data', (data)=>{
     cont_id+=data.toString().trim();
