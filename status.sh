@@ -11,12 +11,17 @@ then
         exit 2
     fi
 
-    #I am not sure if it's safe to store password in status_msg.. but it should be only the user who has 
-    #read access to it
-    cat url.txt
-    exit 0 #running
+    #also check for noVNC process is still running
+    if ! kill -0 $(cat novnc.pid)
+    then
+        echo "novnc disappeared"
+        exit 2 
+    fi
+
+    echo "running"
+    exit 0
 else
     echo "starting"
-    exit 0 #running
+    exit 0
 fi
 
