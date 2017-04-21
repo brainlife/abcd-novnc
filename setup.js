@@ -31,6 +31,8 @@ case "freeview":
     container_name = "soichih/vncserver-freeview"; break;
 case "mrview":
     container_name = "soichih/vncserver-mrview"; break;
+case "fibernavigator":
+    container_name = "soichih/vncserver-fibernavigator"; break;
 default:
     console.error("unknown container type", config.type);
 }
