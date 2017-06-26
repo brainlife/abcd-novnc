@@ -95,7 +95,7 @@ pull.on('close', (code)=>{
                         console.log("started novnc", novnc.pid);
                         fs.writeFileSync("novnc.pid", novnc.pid);
 
-                        var url = "http://"+os.hostname()+":"+port+"/vnc_auto.html?password="+password;
+                        var url = "http://"+os.hostname()+":"+port+"/vnc_lite.html?password="+password;
                         fs.writeFileSync("url.txt", url);
                         console.log("all done", url);
                     }, function(err) {
