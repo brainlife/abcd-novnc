@@ -76,34 +76,44 @@ pull.on('close', (code)=>{
             getp.on('close', (code)=>{
                 if(code != 0) throw new Error("failed to get docker host/port");
                 var hostport = rep.split(" ")[2];
-                console.log("container listening on ", hostport);
+                var vncport = parseInt(hostport.split(":")[1]);
+
+                //wait for vnc server to become ready
+                console.log("waiting for container.vncserver", vncport);
+                tcpportused.waitUntilUsed(vncport, 200, 5000) //port, retry, timeout
+                .then(()=>{
                 
-                //find open port to use
-                tcpportused.findFree(11000, 12000, '0.0.0.0')
-                .then(function(port) {
-                    //start noVNC
-                    const novnc_out = fs.openSync('./novnc.log', 'a');
-                    const novnc_err = fs.openSync('./novnc.log', 'a');
-                    console.log('/usr/local/noVNC/utils/launch.sh', '--listen', port, '--vnc', hostport);
-                    const novnc = spawn('/usr/local/noVNC/utils/launch.sh', ['--listen', port, '--vnc', hostport], {
-                        detached: true, stdio: ['ignore', novnc_out, novnc_err]
-                    });
-                    novnc.unref();
+                    //find open port to use
+                    tcpportused.findFree(11000, 12000, '0.0.0.0')
+                    .then(port=>{
+                        //start noVNC
+                        const novnc_out = fs.openSync('./novnc.log', 'a');
+                        const novnc_err = fs.openSync('./novnc.log', 'a');
+                        console.log('running /usr/local/noVNC/utils/launch.sh', '--listen', port, '--vnc', hostport);
+                        const novnc = spawn('/usr/local/noVNC/utils/launch.sh', ['--listen', port, '--vnc', hostport], {
+                            detached: true, stdio: ['ignore', novnc_out, novnc_err]
+                        });
+                        novnc.unref();
 
-                    tcpportused.waitUntilUsed(port, 200, 5000)
-                    .then(function() {
-                        console.log("started novnc", novnc.pid);
-                        fs.writeFileSync("novnc.pid", novnc.pid);
+                        tcpportused.waitUntilUsed(port, 200, 5000) //port, retry, timeout
+                        .then(()=>{
+                            console.log("started novnc", novnc.pid);
+                            fs.writeFileSync("novnc.pid", novnc.pid);
 
-                        var url = "http://"+os.hostname()+":"+port+"/vnc_lite.html?password="+password;
-                        fs.writeFileSync("url.txt", url);
-                        console.log("all done", url);
-                    }, function(err) {
-                        console.error("noNVC didn't start in time");
-                        process.exit(1);
+                            var url = "http://"+os.hostname()+":"+port+"/vnc_lite.html?password="+password;
+                            fs.writeFileSync("url.txt", url);
+                            console.log("all done", url);
+                        }, err=>{
+                            console.error("noNVC didn't start in 5sec");
+                            process.exit(1);
+                        });
+                    }, err=>{
+                        console.log("can't find open port for novnc");
+                        throw err;
                     });
-                }, function(err) {
-                    console.log("throwing now");
+                }, err=>{
+                    console.error(err);
+                    console.log("contianer.vncserver didn't become ready in 5sec");
                     throw err;
                 });
             });
