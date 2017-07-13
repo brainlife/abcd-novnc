@@ -4,4 +4,8 @@
 
 Service to launch noVNC session with specified docker container
 
+# dependencies
 
+* docker engine
+* noVNC on /usr/local/noVNC
+* noVNC seems to like numpy.. pip install numpy
