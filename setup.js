@@ -21,6 +21,7 @@ console.log("starting container");
 //TODO validate config.input_instance_id
 //TODO validate config.input_task_id
 var src_path = '../../'+config.input_instance_id+'/'+config.input_task_id;
+if(config.subdir) src_path += '/'+config.subdir;
 var abs_src_path = path.resolve(src_path);
 
 var container_name = null;
