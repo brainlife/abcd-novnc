@@ -30,6 +30,8 @@ case "fslview":
     container_name = "soichih/vncserver-fslview"; break;
 case "freeview":
     container_name = "soichih/vncserver-freeview"; break;
+case "freeview-gpu":
+    container_name = "soichih/vncserver-freeview-gpu"; break;
 case "mrview":
     container_name = "soichih/vncserver-mrview"; break;
 case "fibernavigator":
