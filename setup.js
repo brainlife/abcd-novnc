@@ -52,8 +52,14 @@ pull.on('close', (code)=>{
     require('crypto').randomBytes(8, function(err, buffer) {
         const password = buffer.toString('hex');
 
-        console.log('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', container_name]); 
-        const cont = spawn('docker', ['run', '-dP', '-e', 'X11VNC_PASSWORD='+password, '-v', abs_src_path+':/input:ro', container_name]); 
+        //console.log('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', container_name]); 
+        const cont = spawn('nvidia-docker', ['run', '-dP', 
+		'-e', 'X11VNC_PASSWORD='+password, 
+		'-e', 'LD_LIBRARY_PATH=/usr/lib/nvidia-384', 
+		'-v', '/usr/lib/nvidia-384:/usr/lib/nvidia-384:ro',
+		'-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro',
+		'-v', abs_src_path+':/input:ro', 
+		container_name]); 
         var cont_id = "";
         cont.stdout.on('data', (data)=>{
             cont_id+=data.toString().trim();
