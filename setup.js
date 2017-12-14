@@ -36,6 +36,8 @@ case "mrview":
     container_name = "soichih/vncserver-mrview"; break;
 case "fibernavigator":
     container_name = "soichih/vncserver-fibernavigator"; break;
+case "conn":
+    container_name = "soichih/ui-conn"; break;
 default:
     console.error("unknown container type", config.type);
 }
@@ -109,7 +111,7 @@ pull.on('close', (code)=>{
                             console.log("started novnc", novnc.pid);
                             fs.writeFileSync("novnc.pid", novnc.pid);
 
-                            var url = "http://"+os.hostname()+":"+port+"/vnc_lite.html?password="+password+"&reconnect=true";
+                            var url = "http://"+os.hostname()+":"+port+"/vnc_lite.html?password="+password+"&reconnect=true&title=Brainlife";
                             fs.writeFileSync("url.txt", url);
                             console.log("all done", url);
                         }, err=>{
