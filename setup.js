@@ -91,7 +91,7 @@ pull.on('close', (code)=>{
 
                 //wait for vnc server to become ready
                 console.log("waiting for container.vncserver", vncport);
-                tcpportused.waitUntilUsed(vncport, 200, 5000) //port, retry, timeout
+                tcpportused.waitUntilUsed(vncport, 200, 9000) //port, retry, timeout
                 .then(()=>{
                 
                     //find open port to use
@@ -106,7 +106,7 @@ pull.on('close', (code)=>{
                         });
                         novnc.unref();
 
-                        tcpportused.waitUntilUsed(port, 200, 5000) //port, retry, timeout
+                        tcpportused.waitUntilUsed(port, 200, 10000) //port, retry, timeout
                         .then(()=>{
                             console.log("started novnc", novnc.pid);
                             fs.writeFileSync("novnc.pid", novnc.pid);
@@ -115,16 +115,15 @@ pull.on('close', (code)=>{
                             fs.writeFileSync("url.txt", url);
                             console.log("all done", url);
                         }, err=>{
-                            console.error("noNVC didn't start in 5sec");
-                            process.exit(1);
+                            console.error("noNVC didn't start in 10sec");
+			    throw err;
                         });
                     }, err=>{
-                        console.log("can't find open port for novnc");
+                        console.error("can't find an open port for novnc");
                         throw err;
                     });
                 }, err=>{
-                    console.error(err);
-                    console.log("contianer.vncserver didn't become ready in 5sec");
+                    console.error("contianer.vncserver didn't become ready in 9sec");
                     throw err;
                 });
             });
