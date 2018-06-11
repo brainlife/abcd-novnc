@@ -30,12 +30,16 @@ case "fslview":
     container_name = "soichih/vncserver-fslview"; break;
 case "freeview":
     container_name = "soichih/vncserver-freeview"; break;
+case "freeview-gpu":
+    container_name = "soichih/vncserver-freeview-gpu"; break;
 case "mrview":
     container_name = "soichih/vncserver-mrview"; break;
 case "mricrogl":
     container_name = "soichih/vncserver-mricrogl"; break;
 case "fibernavigator":
     container_name = "soichih/vncserver-fibernavigator"; break;
+case "conn":
+    container_name = "soichih/ui-conn"; break;
 default:
     console.error("unknown container type", config.type);
 }
@@ -54,8 +58,14 @@ pull.on('close', (code)=>{
     require('crypto').randomBytes(8, function(err, buffer) {
         const password = buffer.toString('hex');
 
-        console.log('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', container_name]); 
-        const cont = spawn('docker', ['run', '-dP', '-e', 'X11VNC_PASSWORD='+password, '-v', abs_src_path+':/input:ro', container_name]); 
+        //console.log('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', container_name]); 
+        const cont = spawn('nvidia-docker', ['run', '-dP', 
+		'-e', 'X11VNC_PASSWORD='+password, 
+		'-e', 'LD_LIBRARY_PATH=/usr/lib/nvidia-384', 
+		'-v', '/usr/lib/nvidia-384:/usr/lib/nvidia-384:ro',
+		'-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro',
+		'-v', abs_src_path+':/input:ro', 
+		container_name]); 
         var cont_id = "";
         cont.stdout.on('data', (data)=>{
             cont_id+=data.toString().trim();
@@ -83,7 +93,7 @@ pull.on('close', (code)=>{
 
                 //wait for vnc server to become ready
                 console.log("waiting for container.vncserver", vncport);
-                tcpportused.waitUntilUsed(vncport, 200, 5000) //port, retry, timeout
+                tcpportused.waitUntilUsed(vncport, 200, 9000) //port, retry, timeout
                 .then(()=>{
                 
                     //find open port to use
@@ -98,25 +108,24 @@ pull.on('close', (code)=>{
                         });
                         novnc.unref();
 
-                        tcpportused.waitUntilUsed(port, 200, 5000) //port, retry, timeout
+                        tcpportused.waitUntilUsed(port, 200, 10000) //port, retry, timeout
                         .then(()=>{
                             console.log("started novnc", novnc.pid);
                             fs.writeFileSync("novnc.pid", novnc.pid);
 
-                            var url = "http://"+os.hostname()+":"+port+"/vnc_lite.html?password="+password+"&reconnect=true";
+                            var url = "http://"+os.hostname()+":"+port+"/vnc_lite.html?password="+password+"&reconnect=true&title=Brainlife";
                             fs.writeFileSync("url.txt", url);
                             console.log("all done", url);
                         }, err=>{
-                            console.error("noNVC didn't start in 5sec");
-                            process.exit(1);
+                            console.error("noNVC didn't start in 10sec");
+			    throw err;
                         });
                     }, err=>{
-                        console.log("can't find open port for novnc");
+                        console.error("can't find an open port for novnc");
                         throw err;
                     });
                 }, err=>{
-                    console.error(err);
-                    console.log("contianer.vncserver didn't become ready in 5sec");
+                    console.error("contianer.vncserver didn't become ready in 9sec");
                     throw err;
                 });
             });
