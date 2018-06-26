@@ -57,9 +57,8 @@ pull.on('close', (code)=>{
     //create password for vncserver
     require('crypto').randomBytes(8, function(err, buffer) {
         const password = buffer.toString('hex');
-
-        //console.log('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', container_name]); 
-        const cont = spawn('nvidia-docker', ['run', '-dP', 
+        const cont = spawn('docker', ['run', '-dP',  
+        '--runtime=nvidia',
 		'-e', 'X11VNC_PASSWORD='+password, 
 		'-e', 'LD_LIBRARY_PATH=/usr/lib/nvidia-384', 
 		'-v', '/usr/lib/nvidia-384:/usr/lib/nvidia-384:ro',
