@@ -15,7 +15,7 @@ const maxport=12000;
 console.log("starting setup");
 console.dir(config);
 
-console.log("starting container");
+const nvidia_dir = process.env.NVIDIA_DIR || '/usr/lib/nvidia-384';
 
 //start docker container
 //TODO validate config.input_instance_id
@@ -60,8 +60,8 @@ pull.on('close', (code)=>{
         const cont = spawn('docker', ['run', '-dP',  
         '--runtime=nvidia',
 		'-e', 'X11VNC_PASSWORD='+password, 
-		'-e', 'LD_LIBRARY_PATH=/usr/lib/nvidia-384', 
-		'-v', '/usr/lib/nvidia-384:/usr/lib/nvidia-384:ro',
+		'-e', 'LD_LIBRARY_PATH=/usr/lib/nvidia', 
+		'-v', nvidia_dir+':/usr/lib/nvidia:ro',
 		'-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro',
 		'-v', abs_src_path+':/input:ro', 
 		container_name]); 
@@ -107,7 +107,7 @@ pull.on('close', (code)=>{
                         });
                         novnc.unref();
 
-                        tcpportused.waitUntilUsed(port, 200, 10000) //port, retry, timeout
+                        tcpportused.waitUntilUsed(port, 200, 10*1000) //port, retry, timeout
                         .then(()=>{
                             console.log("started novnc", novnc.pid);
                             fs.writeFileSync("novnc.pid", novnc.pid);
