@@ -10,4 +10,4 @@ rm url.txt #prevent premature novnc startup in case rerun
 echo "current directory"
 pwd
 echo "running $node $SERVICE_DIR/setup" 
-node $SERVICE_DIR/setup || ./stop.sh
+node $SERVICE_DIR/setup || ./stop.sh &
