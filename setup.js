@@ -28,6 +28,8 @@ var container_name = null;
 switch(config.type) {
 case "fslview":
     container_name = "soichih/vncserver-fslview"; break;
+case "fsleyes":
+    container_name = "brainlife/ui-fsleyes"; break;
 case "freeview":
     container_name = "soichih/vncserver-freeview"; break;
 case "freeview-gpu":
