@@ -62,6 +62,7 @@ pull.on('close', (code)=>{
 		'-e', 'LD_LIBRARY_PATH=/usr/lib/nvidia-384', 
 		'-v', '/usr/lib/nvidia-384:/usr/lib/nvidia-384:ro',
 		'-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro',
+		'-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro',
 		'-v', abs_src_path+':/input:ro', 
 		container_name]); 
         var cont_id = "";
