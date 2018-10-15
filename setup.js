@@ -15,7 +15,7 @@ const maxport=12000;
 console.log("starting setup");
 console.dir(config);
 
-console.log("starting container");
+const nvidia_dir = process.env.NVIDIA_DIR || '/usr/lib/nvidia-384';
 
 //start docker container
 //TODO validate config.input_instance_id
@@ -28,12 +28,16 @@ var container_name = null;
 switch(config.type) {
 case "fslview":
     container_name = "soichih/vncserver-fslview"; break;
+case "fsleyes":
+    container_name = "brainlife/ui-fsleyes"; break;
 case "freeview":
     container_name = "soichih/vncserver-freeview"; break;
 case "freeview-gpu":
     container_name = "soichih/vncserver-freeview-gpu"; break;
 case "mrview":
     container_name = "soichih/vncserver-mrview"; break;
+case "mricrogl":
+    container_name = "soichih/vncserver-mricrogl"; break;
 case "fibernavigator":
     container_name = "soichih/vncserver-fibernavigator"; break;
 case "conn":
@@ -55,12 +59,11 @@ pull.on('close', (code)=>{
     //create password for vncserver
     require('crypto').randomBytes(8, function(err, buffer) {
         const password = buffer.toString('hex');
-
-        //console.log('docker', ['run', '-dP', '-v', abs_src_path+':/input:ro', container_name]); 
-        const cont = spawn('nvidia-docker', ['run', '-dP', 
+        const cont = spawn('docker', ['run', '-dP',  
+        '--runtime=nvidia',
 		'-e', 'X11VNC_PASSWORD='+password, 
-		'-e', 'LD_LIBRARY_PATH=/usr/lib/nvidia-384', 
-		'-v', '/usr/lib/nvidia-384:/usr/lib/nvidia-384:ro',
+		'-e', 'LD_LIBRARY_PATH=/usr/lib/nvidia', 
+		'-v', nvidia_dir+':/usr/lib/nvidia:ro',
 		'-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro',
 		'-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro',
 		'-v', abs_src_path+':/input:ro', 
@@ -107,7 +110,7 @@ pull.on('close', (code)=>{
                         });
                         novnc.unref();
 
-                        tcpportused.waitUntilUsed(port, 200, 10000) //port, retry, timeout
+                        tcpportused.waitUntilUsed(port, 200, 10*1000) //port, retry, timeout
                         .then(()=>{
                             console.log("started novnc", novnc.pid);
                             fs.writeFileSync("novnc.pid", novnc.pid);
