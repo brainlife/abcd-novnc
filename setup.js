@@ -42,6 +42,8 @@ case "fibernavigator":
     container_name = "soichih/vncserver-fibernavigator"; break;
 case "conn":
     container_name = "soichih/ui-conn"; break;
+case "trackvis":
+    container_name = "brainlife/ui-trackvis"; break;
 default:
     console.error("unknown container type", config.type);
 }
