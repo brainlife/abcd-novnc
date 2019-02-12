@@ -15,7 +15,7 @@ const maxport=12000;
 console.log("starting setup");
 console.dir(config);
 
-const nvidia_dir = process.env.NVIDIA_DIR || '/usr/lib/nvidia-384';
+//const nvidia_dir = process.env.NVIDIA_DIR || '/usr/lib/nvidia-384';
 
 //start docker container
 //TODO validate config.input_instance_id
@@ -61,15 +61,15 @@ pull.on('close', (code)=>{
     //create password for vncserver
     require('crypto').randomBytes(8, function(err, buffer) {
         const password = buffer.toString('hex');
-        const cont = spawn('docker', ['run', '-dP',  
-        '--runtime=nvidia',
+        const cont = spawn('docker', ['run', '-dP',  '--runtime=nvidia',
 		'-e', 'X11VNC_PASSWORD='+password, 
-		'-e', 'LD_LIBRARY_PATH=/usr/lib/nvidia', 
-		'-v', nvidia_dir+':/usr/lib/nvidia:ro',
+		'-e', 'LD_LIBRARY_PATH=/usr/lib/host', 
 		'-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro',
+		'-v', '/usr/lib/x86_64-linux-gnu:/usr/lib/host:ro',
 		'-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro',
 		'-v', abs_src_path+':/input:ro', 
-		container_name]); 
+	container_name]); 
+	//'-v', nvidia_dir+':/usr/lib/nvidia:ro',
         var cont_id = "";
         cont.stdout.on('data', (data)=>{
             cont_id+=data.toString().trim();
