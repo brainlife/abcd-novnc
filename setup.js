@@ -4,6 +4,7 @@ const fs = require('fs');
 const tcpportused = require('tcp-port-used');
 const os = require('os'); 
 const path = require('path');
+const process = require('process');
 
 //load config from local directory
 const config = require(process.cwd()+'/config.json');
@@ -65,7 +66,7 @@ pull.on('close', (code)=>{
 		'-e', 'X11VNC_PASSWORD='+password, 
 		'-e', 'LD_LIBRARY_PATH=/usr/lib/host', 
 		'-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro',
-		'-v', '/usr/lib/x86_64-linux-gnu:/usr/lib/host:ro',
+		'-v', process.cwd()+'/lib:/usr/lib/host:ro',
 		'-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro',
 		'-v', abs_src_path+':/input:ro', 
 	container_name]); 
