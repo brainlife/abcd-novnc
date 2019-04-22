@@ -117,8 +117,7 @@ pull.on('close', (code)=>{
                         .then(()=>{
                             console.log("started novnc", novnc.pid);
                             fs.writeFileSync("novnc.pid", novnc.pid);
-
-                            var url = "http://"+os.hostname()+":"+port+"/vnc_lite.html?password="+password+"&reconnect=true&title=Brainlife";
+                            var url = "http://"+os.hostname()+":"+port+"/vnc_lite.html?password="+password+"&reconnect=true&title="+config.title||"brainlife";
                             fs.writeFileSync("url.txt", url);
                             console.log("all done", url);
                         }, err=>{
