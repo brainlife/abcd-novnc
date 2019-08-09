@@ -62,7 +62,7 @@ pull.on('close', (code)=>{
     //create password for vncserver
     require('crypto').randomBytes(8, function(err, buffer) {
         const password = buffer.toString('hex');
-        const cont = spawn('docker', ['run', '-dP',  '--gpus 1',
+        const cont = spawn('docker', ['run', '-dP',  '--gpus', '1',
 		'-e', 'X11VNC_PASSWORD='+password, 
 		//'-e', 'LD_LIBRARY_PATH=/usr/lib/host', 
 		'-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro',

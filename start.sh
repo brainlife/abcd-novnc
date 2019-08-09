@@ -12,5 +12,7 @@ rm -f url.txt #prevent premature novnc startup in case rerun
 #cp -r -av /usr/lib/x86_64-linux-gnu/tls lib
 #cp -r -av /usr/lib/x86_64-linux-gnu/nvidia lib
 
-#npm install
+#somehow I can't install this globally
+npm install soichih/tcp-port-used
+
 node setup.js || ./stop.sh &
