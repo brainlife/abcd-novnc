@@ -11,7 +11,7 @@ const config = require(process.cwd()+'/config.json');
 
 //statis config for now..
 const minport=11000;
-const maxport=12000;
+const maxport=11100;
 
 console.log("starting setup");
 console.dir(config);
@@ -62,11 +62,11 @@ pull.on('close', (code)=>{
     //create password for vncserver
     require('crypto').randomBytes(8, function(err, buffer) {
         const password = buffer.toString('hex');
-        const cont = spawn('docker', ['run', '-dP',  '--runtime=nvidia',
+        const cont = spawn('docker', ['run', '-dP',  '--gpus 1',
 		'-e', 'X11VNC_PASSWORD='+password, 
-		'-e', 'LD_LIBRARY_PATH=/usr/lib/host', 
+		//'-e', 'LD_LIBRARY_PATH=/usr/lib/host', 
 		'-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro',
-		'-v', process.cwd()+'/lib:/usr/lib/host:ro',
+		//'-v', process.cwd()+'/lib:/usr/lib/host:ro',
 		'-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro',
 		'-v', abs_src_path+':/input:ro', 
 	container_name]); 
