@@ -28,17 +28,17 @@ var abs_src_path = path.resolve(src_path);
 var container_name = null;
 switch(config.type) {
 case "fslview":
-    container_name = "soichih/vncserver-fslview"; break;
+    container_name = "soichih/vncserver-fslview:16"; break;
 case "fsleyes":
-    container_name = "brainlife/ui-fsleyes"; break;
-case "freeview":
-    container_name = "soichih/vncserver-freeview"; break;
+    container_name = "brainlife/ui-fsleyes:0.30.1"; break;
+//case "freeview":
+//    container_name = "soichih/vncserver-freeview"; break;
 case "freeview-gpu":
     container_name = "soichih/vncserver-freeview-gpu"; break;
 case "mrview":
-    container_name = "soichih/vncserver-mrview"; break;
+    container_name = "soichih/vncserver-mrview:4"; break;
 case "mricrogl":
-    container_name = "soichih/vncserver-mricrogl"; break;
+    container_name = "soichih/vncserver-mricrogl:1.1"; break;
 case "fibernavigator":
     container_name = "soichih/vncserver-fibernavigator"; break;
 case "conn":
