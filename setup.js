@@ -45,6 +45,8 @@ case "conn":
     container_name = "soichih/ui-conn"; break;
 case "trackvis":
     container_name = "brainlife/ui-trackvis"; break;
+case "wb_view":
+    container_name = "brainlife/ui-wb_view"; break;
 default:
     console.error("unknown container type", config.type);
 }
