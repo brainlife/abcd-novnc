@@ -9,7 +9,7 @@ cp -av /usr/lib/x86_64-linux-gnu/libEGL* lib
 cp -av /usr/lib/x86_64-linux-gnu/libnvidia* lib
 cp -av /usr/lib/x86_64-linux-gnu/libnvoptix* lib
 cp -r -av /usr/lib/x86_64-linux-gnu/vdpau lib
-cp -r -av /usr/lib/x86_64-linux-gnu/tls lib
+#cp -r -av /usr/lib/x86_64-linux-gnu/tls lib
 #cp -r -av /usr/lib/x86_64-linux-gnu/nvidia* lib
 
 #somehow I can't install this globally
