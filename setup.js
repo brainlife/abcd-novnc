@@ -16,11 +16,7 @@ const maxport=11100;
 console.log("starting setup");
 console.dir(config);
 
-//const nvidia_dir = process.env.NVIDIA_DIR || '/usr/lib/nvidia-384';
-
 //start docker container
-//TODO validate config.input_instance_id
-//TODO validate config.input_task_id
 var src_path = '../../'+config.input_instance_id+'/'+config.input_task_id;
 if(config.subdir) src_path += '/'+config.subdir;
 var abs_src_path = path.resolve(src_path);
@@ -45,6 +41,8 @@ case "trackvis":
     container_name = "brainlife/ui-trackvis"; break;
 case "wb_view":
     container_name = "brainlife/ui-wb_view"; break;
+case "html":
+    container_name = "brainlife/ui-html:1.0"; break;
 default:
     console.error("unknown container type", config.type);
 }
