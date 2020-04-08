@@ -24,7 +24,7 @@ var abs_src_path = path.resolve(src_path);
 let input_dir = "/input-instance/"+config.input_task_id;
 if(config.subdir) input_dir += '/'+config.subdir;
 
-let input_inst_dir = path.resolve(process.cwd()+"/../"+config.input_instance_id);
+let input_inst_dir = path.resolve(process.cwd()+"/../../"+config.input_instance_id);
 
 var container_name = null;
 switch(config.type) {
