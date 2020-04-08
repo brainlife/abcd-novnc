@@ -24,6 +24,8 @@ var abs_src_path = path.resolve(src_path);
 let input_dir = "/host/workdir/"+config.input_instance_id+"/"+config.input_task_id;
 if(config.subdir) input_dir += '/'+config.subdir;
 
+let workdir = path.dirname(process.cwd());
+
 var container_name = null;
 switch(config.type) {
 case "fslview":
@@ -67,6 +69,7 @@ pull.on('close', (code)=>{
 		'-e', 'INPUT_DIR='+input_dir, 
 		'-e', 'X11VNC_PASSWORD='+password, 
 		'-e', 'LD_LIBRARY_PATH=/usr/lib/host', 
+		'-v', work_dir+':/host/workdir',
 		'-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro',
 		'-v', process.cwd()+'/lib:/usr/lib/host:ro',
 		'-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro',
