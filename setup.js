@@ -28,16 +28,7 @@ let input_inst_dir = path.resolve(process.cwd()+"/../../"+config.input_instance_
 
 var container_name = null;
 switch(config.type) {
-case "fslview":
-    container_name = "soichih/vncserver-fslview:16"; break;
-case "fsleyes":
-    container_name = "brainlife/ui-fsleyes:0.30.1-1"; break;
-case "freeview-gpu":
-    container_name = "soichih/vncserver-freeview-gpu:1.1"; break;
-case "mrview":
-    container_name = "soichih/vncserver-mrview:4"; break;
-case "mricrogl":
-    container_name = "soichih/vncserver-mricrogl:1.1"; break;
+//still using /input > need to update xstartup
 case "fibernavigator":
     container_name = "soichih/vncserver-fibernavigator"; break;
 case "conn":
@@ -46,8 +37,20 @@ case "trackvis":
     container_name = "brainlife/ui-trackvis"; break;
 case "wb_view":
     container_name = "brainlife/ui-wb_view"; break;
+
+//updated to use $INPUT_DIR
+case "fslview":
+    container_name = "soichih/vncserver-fslview:17"; break;
+case "fsleyes":
+    container_name = "brainlife/ui-fsleyes:2.0"; break;
+case "mricrogl":
+    container_name = "soichih/vncserver-mricrogl:1.3"; break;
+case "freeview-gpu":
+    container_name = "soichih/vncserver-freeview-gpu:1.2"; break;
+case "mrview":
+    container_name = "soichih/vncserver-mrview:4.1"; break;
 case "html":
-    container_name = "brainlife/ui-html:1.0"; break;
+    container_name = "brainlife/ui-html:1.1"; break;
 default:
     console.error("unknown container type", config.type);
 }
