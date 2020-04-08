@@ -21,10 +21,10 @@ var src_path = '../../'+config.input_instance_id+'/'+config.input_task_id;
 if(config.subdir) src_path += '/'+config.subdir;
 var abs_src_path = path.resolve(src_path);
 
-let input_dir = "/host/instance/"+config.input_task_id;
+let input_dir = "/input-instance/"+config.input_task_id;
 if(config.subdir) input_dir += '/'+config.subdir;
 
-let inst_dir = path.dirname(process.cwd());
+let input_inst_dir = path.resolve(process.cwd()+"/../"+config.input_instance_id);
 
 var container_name = null;
 switch(config.type) {
@@ -69,7 +69,7 @@ pull.on('close', (code)=>{
 		'-e', 'INPUT_DIR='+input_dir, 
 		'-e', 'X11VNC_PASSWORD='+password, 
 		'-e', 'LD_LIBRARY_PATH=/usr/lib/host', 
-		'-v', inst_dir+':/host/instance',
+		'-v', input_inst_dir+':/input-instance',
 		'-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro',
 		'-v', process.cwd()+'/lib:/usr/lib/host:ro',
 		'-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro',
