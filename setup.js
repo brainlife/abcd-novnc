@@ -46,7 +46,7 @@ case "fsleyes":
 case "mricrogl":
     container_name = "soichih/vncserver-mricrogl:1.3"; break;
 case "freeview-gpu":
-    container_name = "soichih/vncserver-freeview-gpu:2.0"; break;
+    container_name = "soichih/vncserver-freeview-gpu:2.1"; break;
 case "mrview":
     container_name = "soichih/vncserver-mrview:4.1"; break;
 case "html":
