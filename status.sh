@@ -18,10 +18,10 @@ then
         exit 2 
     fi
 
-    echo "Container running!"
+    echo "Opening View!"
     exit 0
 else
-    echo "Launching container"
+    echo "Launching container (might take a while for the first time)"
     exit 0
 fi
 
