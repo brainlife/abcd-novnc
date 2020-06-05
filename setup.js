@@ -48,7 +48,7 @@ case "mricrogl":
 case "freeview-gpu":
     container_name = "soichih/vncserver-freeview-gpu:2.1"; break;
 case "mrview":
-    container_name = "soichih/vncserver-mrview:4.1"; break;
+    container_name = "soichih/vncserver-mrview:4.2"; break;
 case "html":
     container_name = "brainlife/ui-html:1.1"; break;
 default:
