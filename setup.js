@@ -42,7 +42,7 @@ case "wb_view":
 case "fslview":
     container_name = "soichih/vncserver-fslview:17"; break;
 case "fsleyes":
-    container_name = "brainlife/ui-fsleyes:2.0.1"; break;
+    container_name = "brainlife/ui-fsleyes:2.0"; break;
 case "mricrogl":
     container_name = "soichih/vncserver-mricrogl:1.3"; break;
 case "freeview-gpu":
