@@ -51,6 +51,8 @@ case "mrview":
     container_name = "soichih/vncserver-mrview:4.2"; break;
 case "html":
     container_name = "brainlife/ui-html:1.1"; break;
+case "dsistudio":
+    container_name = "brainlife/ui-dsistudio:1.0"; break;
 default:
     console.error("unknown container type", config.type);
 }
