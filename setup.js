@@ -26,35 +26,25 @@ if(config.subdir) input_dir += '/'+config.subdir;
 
 let input_inst_dir = path.resolve(process.cwd()+"/../../"+config.input_instance_id);
 
-var container_name = null;
-switch(config.type) {
-//still using /input > need to update xstartup
-case "fibernavigator":
-    container_name = "soichih/vncserver-fibernavigator"; break;
-case "conn":
-    container_name = "soichih/ui-conn"; break;
-case "trackvis":
-    container_name = "brainlife/ui-trackvis"; break;
-case "wb_view":
-    container_name = "brainlife/ui-wb_view"; break;
+const mappings = {
+    fibernavigator: "soichih/vncserver-fibernavigator",
+    conn: "soichih/ui-conn",
+    trackvis: "brainlife/ui-trackvis",
+    wb_view: "brainlife/ui-wb_view",
+    fslview: "soichih/vncserver-fslview:17",
+    fsleyes: "brainlife/ui-fsleyes:2.0",
+    mricrogl: "soichih/vncserver-mricrogl:1.3",
+    "freeview-gpu": "soichih/vncserver-freeview-gpu:2.1",
+    mrview: "soichih/vncserver-mrview:4.2",
+    html: "brainlife/ui-html:1.1",
+    dsistudio: "brainlife/ui-dsistudio:1.0",
+    itksnap: "brainlife/ui-itksnap:5.0.9",
+}
 
-//updated to use $INPUT_DIR
-case "fslview":
-    container_name = "soichih/vncserver-fslview:17"; break;
-case "fsleyes":
-    container_name = "brainlife/ui-fsleyes:2.0"; break;
-case "mricrogl":
-    container_name = "soichih/vncserver-mricrogl:1.3"; break;
-case "freeview-gpu":
-    container_name = "soichih/vncserver-freeview-gpu:2.1"; break;
-case "mrview":
-    container_name = "soichih/vncserver-mrview:4.2"; break;
-case "html":
-    container_name = "brainlife/ui-html:1.1"; break;
-case "dsistudio":
-    container_name = "brainlife/ui-dsistudio:1.0"; break;
-default:
+const container_name = mappings[config.type];
+if(!container_name) {
     console.error("unknown container type", config.type);
+    process.exit(1);
 }
 
 const pull = spawn('docker', ['pull', container_name]); 
