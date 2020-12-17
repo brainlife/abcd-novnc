@@ -12,10 +12,13 @@ then
     fi
 
     #also check for noVNC process is still running
-    if ! kill -0 $(cat novnc.pid)
+    if [ -f novnc.pid ]
     then
-        echo "novnc process disappeared"
-        exit 2 
+        if ! kill -0 $(cat novnc.pid)
+        then
+            echo "novnc process disappeared"
+            exit 2 
+        fi
     fi
 
     echo "Opening View!"

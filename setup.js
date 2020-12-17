@@ -121,7 +121,7 @@ pull.on('close', (code)=>{
                     opts = opts.concat(['-v', abs_src_path+':/usr/share/nginx/html/'+password+':ro']);
                     opts = opts.concat(['-p', "0.0.0.0:"+port+":80"]);
                     startContainer(container_name, opts, (err, cont_id)=>{
-                        console.log("waiting for nginx", port);
+                        console.log("waiting for nginx to start", port);
                         tcpportused.waitUntilUsed(port, 200, 9000).then(()=>{
                             var url = "https://"+os.hostname()+"/vnc/"+port+"/"+password+"/"+index;
                             console.log("started", url);
