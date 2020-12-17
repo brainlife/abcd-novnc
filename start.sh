@@ -17,4 +17,5 @@ fi
 #somehow I can't install this globally
 npm install soichih/tcp-port-used
 
+npm install
 node setup.js || ./stop.sh &
