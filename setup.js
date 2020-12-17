@@ -5,6 +5,7 @@ const tcpportused = require('tcp-port-used');
 const os = require('os'); 
 const path = require('path');
 const process = require('process');
+const find = require('find');
 
 //load config from local directory
 const config = require(process.cwd()+'/config.json');
@@ -105,18 +106,27 @@ pull.on('close', (code)=>{
 
         let opts = ['run', '-d'];
         if(config.type == "html") {
-            //nginx container
-            console.log("looking for an open port");
-            tcpportused.findFree(11000, 12000, '0.0.0.0').then(port=>{
-                console.log("going to use ", port);
-                opts = opts.concat(['-v', abs_src_path+':/usr/share/nginx/html/'+password+':ro']);
-                opts = opts.concat(['-p', "0.0.0.0:"+port+":80"]);
-                startContainer(container_name, opts, (err, cont_id)=>{
-                    console.log("waiting for nginx", port);
-                    tcpportused.waitUntilUsed(port, 200, 9000).then(()=>{
-                        var url = "https://"+os.hostname()+"/vnc/"+port+"/"+password+"/";
-                        console.log("started", url);
-                        fs.writeFileSync("url.txt", url);
+            //find the first .html file under abs_src_path
+            find.file(/.html$/, abs_src_path, files=>{
+                //find does DFS. so pick the last one
+                let index = files[files.length-1];
+                //strip the abs_src_path
+                index = index.substring(abs_src_path.length+1); //remove the trailing / also
+                console.log("using index", index);
+                
+                //nginx container
+                console.log("looking for an open port");
+                tcpportused.findFree(11000, 12000, '0.0.0.0').then(port=>{
+                    console.log("going to use ", port);
+                    opts = opts.concat(['-v', abs_src_path+':/usr/share/nginx/html/'+password+':ro']);
+                    opts = opts.concat(['-p', "0.0.0.0:"+port+":80"]);
+                    startContainer(container_name, opts, (err, cont_id)=>{
+                        console.log("waiting for nginx", port);
+                        tcpportused.waitUntilUsed(port, 200, 9000).then(()=>{
+                            var url = "https://"+os.hostname()+"/vnc/"+port+"/"+password+"/"+index;
+                            console.log("started", url);
+                            fs.writeFileSync("url.txt", url);
+                        });
                     });
                 });
             });
