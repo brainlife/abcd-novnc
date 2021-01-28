@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -e
+set -x
+
 id=$(cat cont.id)
 echo $id
 
