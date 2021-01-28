@@ -40,6 +40,7 @@ const mappings = {
     html: "nginx",
     dsistudio: "brainlife/ui-dsistudio:1.0",
     itksnap: "brainlife/ui-itksnap:5.0.9",
+    brainstorm: "brainlife/ui-brainstorm:210128",
 }
 
 const container_name = mappings[config.type];
