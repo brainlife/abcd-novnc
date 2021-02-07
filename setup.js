@@ -176,13 +176,39 @@ function startNginx(cb) {
 
 function startNOVNC(cb) {
     let vncPort;
+    let gpus; //list of gpu bus IDs
     async.series([
+        
+        //list number of available gpus
+        next=>{
+            //nvidia-smi --query-gpu=gpu_bus_id --format=csv,noheader
+            let out = "";
+            const smi = spawn('nvidia-smi', ['--query-gpu=gpu_bus_id', '--format=csv,noheader']);
+            smi.stdout.on('data', data=>{
+                out += data.toString();
+            });
+            smi.stderr.on('data', data=>{
+                console.error(data.toString());
+            });
+            smi.on('close', code=>{
+                if(code != 0) return next("failed to query gpus");
+                gpus = out.trim().split("\n");
+                next();
+            });
+        },
+        
         next=>{
             console.log("starting ui container");
+
+            //decide on VGL_DISPLAY to use
+            let dindex = Math.floor(Math.random()*gpus.length);
+            let display = [":0.0", ":0.1"][dindex];
+            
             let opts = ['run', '-d'];
             opts = opts.concat(['--publish-all']);
             opts = opts.concat(['--gpus', 'all']);
             opts = opts.concat(['-e', 'INPUT_DIR='+input_dir]);
+            opts = opts.concat(['-e', 'VGL_DISPLAY='+display]);
             opts = opts.concat(['-e', 'X11VNC_PASSWORD='+password]);
             opts = opts.concat(['-e', 'LD_LIBRARY_PATH=/usr/lib/host']);
             opts = opts.concat(['-v', input_inst_dir+':/input-instance:ro']);

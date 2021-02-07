@@ -1,10 +1,6 @@
 #!/bin/bash
 
-if [ ! -f cont.id ]
-then
-    echo "starting up container"
-    exit 0
-fi
+#state management is really poor.. this script doesn't work well when container fails to start, stopped, etc
 
 if [ -f url.txt ]
 then

@@ -26,4 +26,5 @@ if [ -f novnc.pid ]; then
     echo "killing novnc and all children"
     pid=$(cat novnc.pid)
     kill $pid $(list_descendants $pid)
+    rm novnc.pid
 fi
