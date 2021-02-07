@@ -6,16 +6,15 @@ const os = require('os');
 const path = require('path');
 const process = require('process');
 const find = require('find');
+const async = require('async');
+
+const minport=11000;
+const maxport=11200;
 
 //load config from local directory
 const config = require(process.cwd()+'/config.json');
 
-//statis config for now..
-const minport=11000;
-const maxport=11100;
-
 console.log("starting setup");
-console.dir(config);
 
 //start docker container
 var src_path = '../../'+config.input_instance_id+'/'+config.input_task_id;
@@ -84,55 +83,103 @@ function startContainer(name, opts, cb) {
     });
     cont.on('close', (code)=>{
         if(code != 0) return cb("failed to start container. code:"+ code);
-        console.log("container started. const_id:",cont_id);
         fs.writeFileSync("cont.id", cont_id);
         cb(null, cont_id);
     });
 }
 
-const pull = spawn('docker', ['pull', container_name]); 
-pull.stdout.on('data', (data)=>{
-    console.log(data.toString());
-});
-pull.stderr.on('data', (data)=>{
-    console.error(data.toString());
+function dockerPull(container_name, cb) {
+	const pull = spawn('docker', ['pull', container_name]); 
+	pull.stdout.on('data', data=>{
+	    console.log(data.toString());
+	});
+	pull.stderr.on('data', data=>{
+	    console.error(data.toString());
+	});
+	pull.on('close', code=>{
+	    if(code != 0) return cb("failed to pull container. code:"+ code);
+        cb();
+	});
+}
+
+let password;
+let port; //novnc or nginx port between 11000 - 12000
+
+async.series([
+    next=>{
+        console.log("docker pulling container:", container_name);
+        dockerPull(container_name, next);
+    },
+
+    next=>{
+        console.log("creating vncserver password");
+        require('crypto').randomBytes(8, (err, buffer)=>{
+            password = buffer.toString('hex');
+            next();
+        });
+    },
+
+    next=>{
+        console.log("looking for an open port");
+        tcpportused.findFree(minport, maxport, '0.0.0.0').then(_port=>{
+            port = _port;
+            console.log("going to use ", port);
+            next();
+        });
+    },
+
+    next=>{
+        //do container specific things.
+        if(config.type == "html") startNginx(next);
+        else startNOVNC(next);
+    },
+
+], err=>{
+    if(err) throw err;
+    console.log("all done");
 });
 
-pull.on('close', (code)=>{
-    if(code != 0) throw new Error("failed to pull container. code:"+ code);
-    
-    //create password for vncserver
-    require('crypto').randomBytes(8, function(err, buffer) {
-        const password = buffer.toString('hex');
+function startNginx(cb) {
 
-        let opts = ['run', '-d'];
-        if(config.type == "html") {
-            //find the first .html file under abs_src_path
+    let index_html;
+    async.series([
+        //find the first .html file under abs_src_path
+        next=>{
             find.file(/.html$/, abs_src_path, files=>{
-                //find does DFS. so pick the last one
-                let index = files[files.length-1];
-                //strip the abs_src_path
-                index = index.substring(abs_src_path.length+1); //remove the trailing / also
-                console.log("using index", index);
-                
-                //nginx container
-                console.log("looking for an open port");
-                tcpportused.findFree(11000, 12000, '0.0.0.0').then(port=>{
-                    console.log("going to use ", port);
-                    opts = opts.concat(['-v', abs_src_path+':/usr/share/nginx/html/'+password+':ro']);
-                    opts = opts.concat(['-p', "0.0.0.0:"+port+":80"]);
-                    startContainer(container_name, opts, (err, cont_id)=>{
-                        console.log("waiting for nginx to start", port);
-                        tcpportused.waitUntilUsed(port, 200, 9000).then(()=>{
-                            var url = "https://"+os.hostname()+"/vnc/"+port+"/"+password+"/"+index;
-                            console.log("started", url);
-                            fs.writeFileSync("url.txt", url);
-                        });
-                    });
-                });
+                //find does DFS. so pick the last one and strip the abs_src_path (remove the trailing / also)
+                index_html = files[files.length-1].substring(abs_src_path.length+1); 
+                next();
             });
-        } else {
-            //NOVNC container
+        },
+
+        next=>{
+            console.log("starting nginx container");
+            let opts = ['run', '-d'];
+            opts = opts.concat(['-v', abs_src_path+':/usr/share/nginx/html/'+password+':ro']);
+            opts = opts.concat(['-p', "0.0.0.0:"+port+":80"]);
+            startContainer(container_name, opts, next);
+        },
+
+        next=>{
+            let url = "https://"+os.hostname()+"/vnc/"+port+"/"+password+"/"+index_html;
+            console.debug(url);
+            console.log("waiting for nginx to start on", port);
+            tcpportused.waitUntilUsed(port, 200, 9000) //port, retry, timeout
+            .then(()=>{
+                fs.writeFileSync("url.txt", url);
+                next();
+            }).catch(next);
+        },
+
+    ], cb);
+}
+
+function startNOVNC(cb) {
+    let vncPort;
+    async.series([
+        next=>{
+            console.log("starting ui container");
+            let opts = ['run', '-d'];
             opts = opts.concat(['--publish-all']);
             opts = opts.concat(['--gpus', 'all']);
             opts = opts.concat(['-e', 'INPUT_DIR='+input_dir]);
@@ -144,49 +191,51 @@ pull.on('close', (code)=>{
             opts = opts.concat(['-v', process.cwd()+'/lib:/usr/lib/host:ro']);
             opts = opts.concat(['-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro']);
             startContainer(container_name, opts, (err, cont_id)=>{
-                getDockerPort(cont_id, (err, vncport)=>{
-                    if(err) throw err;
-                    
-                    //wait for vnc server to become ready
-                    console.log("waiting for container.vncserver", vncport);
-                    tcpportused.waitUntilUsed(vncport, 200, 9000) //port, retry, timeout
-                    .then(()=>{
-                    
-                        //find open port to use for noVNC to expose the vncport
-                        tcpportused.findFree(11000, 12000, '0.0.0.0').then(port=>{
-                            
-                            //start noVNC
-                            const novnc_out = fs.openSync('./novnc.log', 'a');
-                            const novnc_err = fs.openSync('./novnc.log', 'a');
-                            console.log('running /usr/local/noVNC/utils/launch.sh', '--listen', port, '--vnc', "0.0.0.0:"+vncport);
-                            const novnc = spawn('/usr/local/noVNC/utils/launch.sh', ['--listen', port, '--vnc', "0.0.0.0:"+vncport], {
-                                detached: true, stdio: ['ignore', novnc_out, novnc_err]
-                            });
-                            novnc.unref();
-
-                            tcpportused.waitUntilUsed(port, 200, 10*1000) //port, retry, timeout
-                            .then(()=>{
-                                console.log("started novnc", novnc.pid);
-                                fs.writeFileSync("novnc.pid", novnc.pid);
-                                var url = "https://"+os.hostname()+"/vnc/"+port+"/vnc_lite.html?path=vnc/"+port+"/websockify&password="+password+"&reconnect=true&title="+config.title||"brainlife";
-                                fs.writeFileSync("url.txt", url);
-                                console.log("all done", url);
-                            }, err=>{
-                                console.error("noNVC didn't start in 10sec");
-                    throw err;
-                            });
-                        }, err=>{
-                            console.error("can't find an open port for novnc");
-                            throw err;
-                        });
-                    }, err=>{
-                        console.error("contianer.vncserver didn't become ready in 9sec");
-                        throw err;
-                    });
+                if(err) return next(err);
+                //find out which vncport it's using
+                getDockerPort(cont_id, (err, _vncPort)=>{
+                    if(err) return next(err);
+                    vncPort = _vncPort;
+                    console.log("container started", cont_id, "port", vncPort);
+                    next();
                 });
             });
-        }
-    });
-});
+        },
+
+        next=>{
+            console.log("waiting for container.vncserver", vncPort);
+            tcpportused.waitUntilUsed(vncPort, 200, 9000) //port, retry, timeout
+            .then(()=>{
+                console.log("vncserver is ready!");
+                next();
+            });
+        },
+
+        next=>{
+            console.log('running /usr/local/noVNC/utils/launch.sh', '--listen', port, '--vnc', "0.0.0.0:"+vncPort);
+            const novnc_out = fs.openSync('./novnc.log', 'a');
+            const novnc_err = fs.openSync('./novnc.log', 'a');
+            const novnc = spawn('/usr/local/noVNC/utils/launch.sh', ['--listen', port, '--vnc', "0.0.0.0:"+vncPort], {
+                detached: true, stdio: ['ignore', novnc_out, novnc_err]
+            });
+            novnc.unref();
+            fs.writeFileSync("novnc.pid", novnc.pid.toString());
+            fs.writeFileSync("novnc.pid", novnc.pid.toString());
+            next();
+        },
+
+        next=>{
+            let url = "https://"+os.hostname()+"/vnc/"+port+"/vnc_lite.html?path=vnc/"+port+"/websockify&password="+password+"&reconnect=true&title="+config.title||"brainlife";
+            console.log("waiting for novnc to become ready", url);
+            tcpportused.waitUntilUsed(port, 200, 9000) //port, retry, timeout
+            .then(()=>{
+                console.log("started novnc");
+                fs.writeFileSync("url.txt", url);
+                next();
+            }).catch(next);
+         },
+
+    ], cb);
+}
 
 

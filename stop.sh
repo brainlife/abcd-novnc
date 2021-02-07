@@ -8,6 +8,7 @@ echo $id
 
 echo "removing docker container $id"
 docker stop $id && docker rm $id && echo "container removed"
+rm cont.id
 
 list_descendants ()
 {

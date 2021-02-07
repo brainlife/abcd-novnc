@@ -1,8 +1,13 @@
 #!/bin/bash
 
+if [ ! -f cont.id ]
+then
+    echo "starting up container"
+    exit 0
+fi
+
 if [ -f url.txt ]
 then
-
     #check to see if the docker container is still running
     docker inspect $(cat cont.id) > cont.info
     if [ ! $? -eq 0 ]
@@ -24,7 +29,7 @@ then
     echo "Opening View!"
     exit 0
 else
-    echo "Launching container (might take a while for the first time)"
+    echo "setting up vis container (might take a while for the first time)"
     exit 0
 fi
 
