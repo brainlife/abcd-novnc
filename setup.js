@@ -36,7 +36,7 @@ const mappings = {
     mricrogl: "soichih/vncserver-mricrogl:1.3",
     "freeview-gpu": "soichih/vncserver-freeview-gpu:2.1",
     mrview: "soichih/vncserver-mrview:4.2",
-    html: "nginx",
+    html: "nginx:1.16.1", //last version that didn't change uid to 101
     dsistudio: "brainlife/ui-dsistudio:1.0",
     itksnap: "brainlife/ui-itksnap:5.0.9",
     brainstorm: "brainlife/ui-brainstorm:210128",
