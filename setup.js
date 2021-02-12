@@ -37,7 +37,7 @@ const mappings = {
     "freeview-gpu": "soichih/vncserver-freeview-gpu:2.1",
     mrview: "soichih/vncserver-mrview:4.2",
     //html: "nginx:1.16.1", //last version that didn't change uid to 101
-    html: "nginx",
+    html: "brainlife/nginx:1.0",
     dsistudio: "brainlife/ui-dsistudio:1.0",
     itksnap: "brainlife/ui-itksnap:5.0.9",
     brainstorm: "brainlife/ui-brainstorm:210128",
@@ -156,7 +156,6 @@ function startNginx(cb) {
         next=>{
             console.log("starting nginx container");
             let opts = ['run', '-d'];
-            opts = opts.concat(['-v', process.cwd()+'/nginx.conf:/etc/nginx/nginx.conf']); //use 1000 for uid
             opts = opts.concat(['-v', abs_src_path+':/usr/share/nginx/html/'+password+':ro']);
             opts = opts.concat(['-p', "0.0.0.0:"+port+":80"]);
             startContainer(container_name, opts, next);
