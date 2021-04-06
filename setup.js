@@ -191,11 +191,11 @@ function startWeb(cb, index_html) {
             //for Jupyter notebook
             opts = opts.concat(['-v', input_inst_dir+':/input-instance:ro']);
             opts = opts.concat(['-e', 'INPUT_DIR='+input_dir]);
-            opts = opts.concat(['-e', 'TOKEN='+password]);
+            //opts = opts.concat(['-e', "TOKEN=''"]);
 
             //TODO - can't get it work through nginx .. so we don't need this at the moment.. but
             //klet's set it for now for future
-            opts = opts.concat(['-e', 'BASEURL=/vnc/'+port+'/']); //need trailling /
+            opts = opts.concat(['-e', 'BASEURL=/vnc/'+port+'/'+password+'/']); //need trailling /
 
             opts = opts.concat(['-p', "0.0.0.0:"+port+":80"]);
             startContainer(container_name, opts, next);
@@ -208,7 +208,8 @@ function startWeb(cb, index_html) {
             //can't get it working through nginx proxy..
             //const url = "https://"+os.hostname()+"/web/"+port+"/"+index_html;
 
-            const url = "http://"+os.hostname()+":"+port+"/vnc/"+port+"/"+index_html+"?token="+password;
+            const url = "http://"+os.hostname()+":"+port+"/vnc/"+port+"/"+password+'/'+index_html;
+            //+"?token="+password;
 
             console.debug("-----------------------------");
             console.debug(url);
