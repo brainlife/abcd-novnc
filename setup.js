@@ -27,6 +27,7 @@ if(config.subdir) input_dir += '/'+config.subdir;
 let input_inst_dir = path.resolve(process.cwd()+"/../../"+config.input_instance_id);
 
 const mappings = {
+    //nonvc apps
     fibernavigator: "soichih/vncserver-fibernavigator",
     conn: "soichih/ui-conn",
     trackvis: "brainlife/ui-trackvis",
@@ -36,11 +37,14 @@ const mappings = {
     mricrogl: "soichih/vncserver-mricrogl:1.3",
     "freeview-gpu": "soichih/vncserver-freeview-gpu:2.1",
     mrview: "soichih/vncserver-mrview:4.2",
-    //html: "nginx:1.16.1", //last version that didn't change uid to 101
-    html: "brainlife/nginx:1.0",
     dsistudio: "brainlife/ui-dsistudio:1.0",
     itksnap: "brainlife/ui-itksnap:5.0.9",
     brainstorm: "brainlife/ui-brainstorm:210128",
+
+    //web apps
+    //html: "nginx:1.16.1", //last version that didn't change uid to 101
+    html: "brainlife/nginx:1.0",
+    mnefif: "brainlife/ui-mne:0.22.1",
 }
 
 const container_name = mappings[config.type];
@@ -90,17 +94,17 @@ function startContainer(name, opts, cb) {
 }
 
 function dockerPull(container_name, cb) {
-	const pull = spawn('docker', ['pull', container_name]); 
-	pull.stdout.on('data', data=>{
-	    console.log(data.toString());
-	});
-	pull.stderr.on('data', data=>{
-	    console.error(data.toString());
-	});
-	pull.on('close', code=>{
-	    if(code != 0) return cb("failed to pull container. code:"+ code);
+    const pull = spawn('docker', ['pull', container_name]); 
+    pull.stdout.on('data', data=>{
+        console.log(data.toString());
+    });
+    pull.stderr.on('data', data=>{
+        console.error(data.toString());
+    });
+    pull.on('close', code=>{
+        if(code != 0) return cb("failed to pull container. code:"+ code);
         cb();
-	});
+    });
 }
 
 let password;
@@ -132,6 +136,7 @@ async.series([
     next=>{
         //do container specific things.
         if(config.type == "html") startNginx(next);
+        else if(config.type == "mnefif") startWeb(next, "notebooks/output.ipynb");
         else startNOVNC(next);
     },
 
@@ -142,9 +147,9 @@ async.series([
 
 function startNginx(cb) {
 
-    let index_html;
     async.series([
-        //find the first .html file under abs_src_path
+        
+        //if index_html is not specified, find the first .html file under abs_src_path
         next=>{
             find.file(/.html$/, abs_src_path, files=>{
                 //find does DFS. so pick the last one and strip the abs_src_path (remove the trailing / also)
@@ -156,15 +161,58 @@ function startNginx(cb) {
         next=>{
             console.log("starting nginx container");
             let opts = ['run', '-d'];
+
+            //only used by nginx (TODO - map to /input-instance?)
             opts = opts.concat(['-v', abs_src_path+':/usr/share/nginx/html/'+password+':ro']);
+
             opts = opts.concat(['-p', "0.0.0.0:"+port+":80"]);
             startContainer(container_name, opts, next);
         },
 
         next=>{
-            let url = "https://"+os.hostname()+"/vnc/"+port+"/"+password+"/"+index_html;
+            const url = "https://"+os.hostname()+"/vnc/"+port+"/"+password+"/"+index_html;
             console.debug(url);
-            console.log("waiting for nginx to start on", port);
+            console.log("waiting for web server to start on", port);
+            tcpportused.waitUntilUsed(port, 200, 9000) //port, retry, timeout
+            .then(()=>{
+                fs.writeFileSync("url.txt", url);
+                next();
+            }).catch(next);
+        },
+
+    ], cb);
+}
+
+function startWeb(cb, index_html) {
+
+    async.series([
+        next=>{
+            console.log("starting webserver container");
+            let opts = ['run', '-d'];
+
+            //for Jupyter notebook
+            opts = opts.concat(['-v', input_inst_dir+':/input-instance:ro']);
+            opts = opts.concat(['-e', 'TOKEN='+password]);
+            opts = opts.concat(['-e', 'BASEURL=/vnc/'+port+'/']); //need trailling /
+
+            opts = opts.concat(['-p', "0.0.0.0:"+port+":80"]);
+            startContainer(container_name, opts, next);
+        },
+
+        next=>{
+            //notebook to open first
+            const index_html = "notebooks/output.ipynb";
+            
+            //can't get it working through nginx proxy..
+            //const url = "https://"+os.hostname()+"/web/"+port+"/"+index_html;
+
+            const url = "http://"+os.hostname()+":"+port+"/vnc/"+port+"/"+index_html+"?token="+password;
+
+            console.debug("-----------------------------");
+            console.debug(url);
+            console.debug("-----------------------------");
+
+            console.log("waiting for web server to start on", port);
             tcpportused.waitUntilUsed(port, 200, 9000) //port, retry, timeout
             .then(()=>{
                 fs.writeFileSync("url.txt", url);
