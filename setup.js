@@ -161,10 +161,8 @@ function startNginx(cb) {
         next=>{
             console.log("starting nginx container");
             let opts = ['run', '-d'];
-
-            //only used by nginx (TODO - map to /input-instance?)
             opts = opts.concat(['-v', abs_src_path+':/usr/share/nginx/html/'+password+':ro']);
-
+            opts = opts.concat(['-e', 'INPUT_DIR='+input_dir]);
             opts = opts.concat(['-p', "0.0.0.0:"+port+":80"]);
             startContainer(container_name, opts, next);
         },
@@ -192,7 +190,11 @@ function startWeb(cb, index_html) {
 
             //for Jupyter notebook
             opts = opts.concat(['-v', input_inst_dir+':/input-instance:ro']);
+            opts = opts.concat(['-e', 'INPUT_DIR='+input_dir]);
             opts = opts.concat(['-e', 'TOKEN='+password]);
+
+            //TODO - can't get it work through nginx .. so we don't need this at the moment.. but
+            //klet's set it for now for future
             opts = opts.concat(['-e', 'BASEURL=/vnc/'+port+'/']); //need trailling /
 
             opts = opts.concat(['-p', "0.0.0.0:"+port+":80"]);
