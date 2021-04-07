@@ -136,7 +136,7 @@ async.series([
     next=>{
         //do container specific things.
         if(config.type == "html") startNginx(next);
-        else if(config.type == "mnefif") startWeb(next, "notebooks/output.ipynb");
+        else if(config.type == "mnefif") startWeb(next);
         else startNOVNC(next);
     },
 
@@ -181,7 +181,7 @@ function startNginx(cb) {
     ], cb);
 }
 
-function startWeb(cb, index_html) {
+function startWeb(cb) {
 
     async.series([
         next=>{
@@ -203,7 +203,7 @@ function startWeb(cb, index_html) {
 
         next=>{
             //notebook to open first
-            const index_html = "notebooks/output.ipynb";
+            const index_html = "notebooks/main.ipynb";
             
             //can't get it working through nginx proxy..
             //const url = "https://"+os.hostname()+"/web/"+port+"/"+index_html;
