@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -e
+set -x
+
 rm -f url.txt #prevent premature novnc startup in case rerun
 
 #setup nvidia runtime lib directory
