@@ -204,6 +204,10 @@ function startNOVNC(cb) {
             //decide on VGL_DISPLAY to use
             let dindex = Math.floor(Math.random()*gpus.length);
             let display = [":0.0", ":0.1"][dindex];
+
+            //:0.0 is too slow on gpu2 for some reason.. it's stuck on P8 (powerstate).. but gpu1 is like that
+            //and it's not too slow..
+            if(os.hostname() == "gpu2-pestillilab.psych.indiana.edu") display = ":0.1";
             
             let opts = ['run', '-d'];
             opts = opts.concat(['--publish-all']);
