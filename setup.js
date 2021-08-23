@@ -294,10 +294,9 @@ function startNOVNC(cb) {
         },
 
         next=>{
-            console.log('running /usr/local/noVNC/utils/launch.sh', '--listen', port, '--vnc', "0.0.0.0:"+vncPort);
             const novnc_out = fs.openSync('./novnc.log', 'a');
             const novnc_err = fs.openSync('./novnc.log', 'a');
-            const novnc = spawn('/usr/local/noVNC/utils/launch.sh', ['--listen', port, '--vnc', "0.0.0.0:"+vncPort], {
+            const novnc = spawn('/usr/local/noVNC/utils/novnc_proxy', ['--listen', port, '--vnc', "0.0.0.0:"+vncPort], {
                 detached: true, stdio: ['ignore', novnc_out, novnc_err]
             });
             novnc.unref();
