@@ -258,7 +258,8 @@ function startNOVNC(cb) {
 
             //:0.0 is too slow on gpu2 for some reason.. it's stuck on P8 (powerstate).. but gpu1 is like that
             //and it's not too slow..
-            if(os.hostname() == "gpu2-pestillilab.psych.indiana.edu") display = ":0.1";
+            //if(os.hostname() == "gpu2-pestillilab.psych.indiana.edu") display = ":0.1";
+            if(os.hostname() == "gpu2-pestillilab.psych.indiana.edu") display = ":0.0";
             
             let opts = ['run', '-d'];
             opts = opts.concat(['--publish-all']);
