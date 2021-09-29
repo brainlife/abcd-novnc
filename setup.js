@@ -67,8 +67,10 @@ function getDockerPort(id, cb) {
     });
     getp.on('close', (code)=>{
         if(code != 0) return cb(err);
-        //rep> 5900/tcp -> 0.0.0.0:32780
-        var hostport = rep.split(" ")[2]; //0.0.0.0:32780
+        //5900/tcp -> 0.0.0.0:49163
+        //5900/tcp -> :::49163
+        const first = rep.split("\n")[0]; //grab the first line
+        var hostport = first.split(" ")[2]; //grab the 3rd token "0.0.0.0:49163"
         var port = parseInt(hostport.split(":")[1]); //32780
         cb(null, port);
     });
