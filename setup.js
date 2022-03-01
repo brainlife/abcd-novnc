@@ -172,7 +172,9 @@ function startNginx(cb) {
             pull.on('close', code=>{
                 if(code != 0) return next("failed to find index.html"+ code);
                 const files = out.split("\n");
-                if(files.length) index_html = files[0];
+                if(files.length) {
+                    index_html = files[0].substring(abs_src_path.length+1);
+                }
                 next();
             });
         },
