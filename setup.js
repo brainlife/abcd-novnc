@@ -5,7 +5,7 @@ const tcpportused = require('tcp-port-used');
 const os = require('os'); 
 const path = require('path');
 const process = require('process');
-const find = require('find');
+//const find = require('find');
 const async = require('async');
 
 const minport=11000;
@@ -153,9 +153,26 @@ function startNginx(cb) {
         
         //if index_html is not specified, find the first .html file under abs_src_path
         next=>{
+            /*
             find.file(/.html$/, abs_src_path, files=>{
                 //find does DFS. so pick the last one and strip the abs_src_path (remove the trailing / also)
                 index_html = files[files.length-1].substring(abs_src_path.length+1); 
+                next();
+            });
+            */
+
+            const pull = spawn('find', [abs_src_path, '-name', 'index.html']);
+            let out = "";
+            pull.stdout.on('data', data=>{
+                out += data.toString();
+            });
+            pull.stderr.on('data', data=>{
+                console.error(data.toString());
+            });
+            pull.on('close', code=>{
+                if(code != 0) return cb("failed to pull container. code:"+ code);
+                const files = out.split("\n");
+                if(files.length) index_html = files[0];
                 next();
             });
         },
