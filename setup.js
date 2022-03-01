@@ -170,7 +170,7 @@ function startNginx(cb) {
                 console.error(data.toString());
             });
             pull.on('close', code=>{
-                if(code != 0) return cb("failed to pull container. code:"+ code);
+                if(code != 0) return next("failed to find index.html"+ code);
                 const files = out.split("\n");
                 if(files.length) index_html = files[0];
                 next();
