@@ -153,15 +153,8 @@ function startNginx(cb) {
         
         //if index_html is not specified, find the first .html file under abs_src_path
         next=>{
-            /*
-            find.file(/.html$/, abs_src_path, files=>{
-                //find does DFS. so pick the last one and strip the abs_src_path (remove the trailing / also)
-                index_html = files[files.length-1].substring(abs_src_path.length+1); 
-                next();
-            });
-            */
 
-            const pull = spawn('find', [abs_src_path, '-name', 'index.html']);
+            const pull = spawn('find', [abs_src_path, '-name', '*.html']);
             let out = "";
             pull.stdout.on('data', data=>{
                 out += data.toString();
