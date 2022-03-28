@@ -5,11 +5,10 @@ const tcpportused = require('tcp-port-used');
 const os = require('os'); 
 const path = require('path');
 const process = require('process');
-//const find = require('find');
 const async = require('async');
 
-const minport=11000;
-const maxport=11200;
+const minport = 11000;
+const maxport = 11200;
 
 //load config from local directory
 const config = require(process.cwd()+'/config.json');
@@ -150,11 +149,10 @@ async.series([
 function startNginx(cb) {
 
     async.series([
-        
+
         //if index_html is not specified, find the first .html file under abs_src_path
         next=>{
-
-            const pull = spawn('find', [abs_src_path, '-name', '*.html']);
+            const pull = spawn('find', [abs_src_path, '-depth', '-name', '*.html']);
             let out = "";
             pull.stdout.on('data', data=>{
                 out += data.toString();
@@ -164,9 +162,12 @@ function startNginx(cb) {
             });
             pull.on('close', code=>{
                 if(code != 0) return next("failed to find index.html"+ code);
+
+                //pick the last one on the list
                 const files = out.split("\n");
                 if(files.length) {
-                    index_html = files[0].substring(abs_src_path.length+1);
+                    const lastfile = files.pop();
+                    index_html = lastfile.substring(abs_src_path.length+1);
                 }
                 next();
             });
@@ -205,7 +206,6 @@ function startWeb(cb) {
             //for Jupyter notebook
             opts = opts.concat(['-v', input_inst_dir+':/input-instance:ro']);
             opts = opts.concat(['-e', 'INPUT_DIR='+input_dir]);
-            //opts = opts.concat(['-e', "TOKEN=''"]);
 
             //TODO - can't get it work through nginx .. so we don't need this at the moment.. but
             //klet's set it for now for future
@@ -218,12 +218,7 @@ function startWeb(cb) {
         next=>{
             //notebook to open first
             const index_html = "notebooks/main.ipynb";
-            
-            //can't get it working through nginx proxy..
-            //const url = "https://"+os.hostname()+"/web/"+port+"/"+index_html;
-
             const url = "http://"+os.hostname()+":"+port+"/vnc/"+port+"/"+password+'/'+index_html;
-            //+"?token="+password;
 
             console.debug("-----------------------------");
             console.debug(url);
@@ -244,7 +239,7 @@ function startNOVNC(cb) {
     let vncPort;
     let gpus; //list of gpu bus IDs
     async.series([
-        
+
         //list number of available gpus
         next=>{
             //nvidia-smi --query-gpu=gpu_bus_id --format=csv,noheader
@@ -262,7 +257,7 @@ function startNOVNC(cb) {
                 next();
             });
         },
-        
+
         next=>{
             console.log("starting ui container");
 
@@ -272,9 +267,8 @@ function startNOVNC(cb) {
 
             //:0.0 is too slow on gpu2 for some reason.. it's stuck on P8 (powerstate).. but gpu1 is like that
             //and it's not too slow..
-            //if(os.hostname() == "gpu2-pestillilab.psych.indiana.edu") display = ":0.1";
             if(os.hostname() == "gpu2-pestillilab.psych.indiana.edu") display = ":0.0";
-            
+
             let opts = ['run', '-d'];
             opts = opts.concat(['--publish-all']);
             opts = opts.concat(['--gpus', 'all']);
@@ -333,5 +327,4 @@ function startNOVNC(cb) {
 
     ], cb);
 }
-
 
