@@ -152,7 +152,8 @@ function startNginx(cb) {
 
         //if index_html is not specified, find the first .html file under abs_src_path
         next=>{
-            const pull = spawn('find', [abs_src_path, '-depth', '-name', '*.html']);
+            console.log("finding *.html in ", abs_src_path);
+            const pull = spawn('find', [abs_src_path, '-name', '*.html']);
             let out = "";
             pull.stdout.on('data', data=>{
                 out += data.toString();
@@ -165,8 +166,18 @@ function startNginx(cb) {
 
                 //pick the last one on the list
                 const files = out.trim().split("\n");
+
+                //sort by depth
+                files.sort((a,b)=>{
+                    const ad = a.split("/").length;
+                    const bd = b.split("/").length;
+                    return bd - ad;
+                });
+                console.dir(files);
+
                 if(files.length) {
                     const lastfile = files.pop();
+                    console.log("laastfile found", lastfile);
                     index_html = lastfile.substring(abs_src_path.length+1);
                 }
                 next();
@@ -327,4 +338,5 @@ function startNOVNC(cb) {
 
     ], cb);
 }
+
 
