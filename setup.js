@@ -164,7 +164,7 @@ function startNginx(cb) {
                 if(code != 0) return next("failed to find index.html"+ code);
 
                 //pick the last one on the list
-                const files = out.split("\n");
+                const files = out.trim().split("\n");
                 if(files.length) {
                     const lastfile = files.pop();
                     index_html = lastfile.substring(abs_src_path.length+1);
