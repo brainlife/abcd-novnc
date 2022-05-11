@@ -4,11 +4,18 @@
 
 if [ -f url.txt ]
 then
-    #check to see if the docker container is still running
+    #check to see if the docker container exists
     docker inspect $(cat cont.id) > cont.info
     if [ ! $? -eq 0 ]
     then
         echo "Container disappeared"
+        exit 2
+    fi
+
+    #check to see if the container is still running
+    status=$(cat cont.info | jq -r '.[0].State.Status')
+    if [ "$status" != "running" ]; then
+        echo "container is not running ($status)"
         exit 2
     fi
 
