@@ -31,7 +31,7 @@ const mappings = {
     conn: "soichih/ui-conn",
     trackvis: "brainlife/ui-trackvis",
     wb_view: "brainlife/ui-wb_view",
-    fslview: "soichih/vncserver-fslview:17",
+    fslview: "soichih/vncserver-fslview:18",
     fsleyes: "brainlife/ui-fsleyes:2.0",
     mricrogl: "soichih/vncserver-mricrogl:1.3",
     "freeview-gpu": "soichih/vncserver-freeview-gpu:2.1",
