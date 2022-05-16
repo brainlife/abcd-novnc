@@ -16,7 +16,7 @@ if [ ! -d lib ]; then
 fi
 
 #somehow I can't install this globally
-npm install soichih/tcp-port-used
+npm install https://github.com/soichih/tcp-port-used
 
 npm install
 node setup.js || ./stop.sh &
