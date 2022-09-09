@@ -263,14 +263,17 @@ function startNOVNC(cb) {
                 console.error(data.toString());
             });
             smi.on('close', code=>{
-                if(code != 0) return next("failed to run nvidia-smi");
+                if(code != 0) {
+                    console.error("failed to run nvidia-smi");
+                    return next();
+                }
                 gpus = out.trim().split("\n");
                 next();
             });
+
+            //without this ENOENT exception is thrown
             smi.on('error', err=>{
                 console.log("ale?");
-                console.error(err);
-                next(); //let's assume that nvidia-smi isn't installed on this machine.. 
             });
         },
 
