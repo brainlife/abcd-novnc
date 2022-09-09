@@ -254,24 +254,24 @@ function startNOVNC(cb) {
         //list number of available gpus
         next=>{
             //nvidia-smi --query-gpu=gpu_bus_id --format=csv,noheader
+            const smi = spawn('nvidia-smi', ['--query-gpu=gpu_bus_id', '--format=csv,noheader']);
             let out = "";
-            try {
-                const smi = spawn('nvidia-smi', ['--query-gpu=gpu_bus_id', '--format=csv,noheader']);
-                smi.stdout.on('data', data=>{
-                    out += data.toString();
-                });
-                smi.stderr.on('data', data=>{
-                    console.error(data.toString());
-                });
-                smi.on('close', code=>{
-                    if(code != 0) return next("failed to run nvidia-smi");
-                    gpus = out.trim().split("\n");
-                    next();
-                });
-            } catch (err) {
+            smi.stdout.on('data', data=>{
+                out += data.toString();
+            });
+            smi.stderr.on('data', data=>{
+                console.error(data.toString());
+            });
+            smi.on('close', code=>{
+                if(code != 0) return next("failed to run nvidia-smi");
+                gpus = out.trim().split("\n");
+                next();
+            });
+            smi.on('error', err=>{
+                console.log("ale?");
                 console.error(err);
                 next(); //let's assume that nvidia-smi isn't installed on this machine.. 
-            }
+            });
         },
 
         next=>{
