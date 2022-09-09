@@ -248,7 +248,7 @@ function startWeb(cb) {
 
 function startNOVNC(cb) {
     let vncPort;
-    let gpus; //list of gpu bus IDs
+    let gpus = []; //list of gpu bus IDs
     async.series([
 
         //list number of available gpus
@@ -263,7 +263,10 @@ function startNOVNC(cb) {
                 console.error(data.toString());
             });
             smi.on('close', code=>{
-                if(code != 0) return next("failed to query gpus");
+                if(code != 0) {
+                    console.error("failed to query gpus");
+                    return next();
+                }
                 gpus = out.trim().split("\n");
                 next();
             });
@@ -272,19 +275,9 @@ function startNOVNC(cb) {
         next=>{
             console.log("starting ui container");
 
-            //decide on VGL_DISPLAY to use
-            let dindex = Math.floor(Math.random()*gpus.length);
-            let display = [":0.0", ":0.1"][dindex];
-
-            //:0.0 is too slow on gpu2 for some reason.. it's stuck on P8 (powerstate).. but gpu1 is like that
-            //and it's not too slow..
-            if(os.hostname() == "gpu2-pestillilab.psych.indiana.edu") display = ":0.0";
-
             let opts = ['run', '-d'];
             opts = opts.concat(['--publish-all']);
-            opts = opts.concat(['--gpus', 'all']);
             opts = opts.concat(['-e', 'INPUT_DIR='+input_dir]);
-            opts = opts.concat(['-e', 'VGL_DISPLAY='+display]);
             opts = opts.concat(['-e', 'X11VNC_PASSWORD='+password]);
             opts = opts.concat(['-e', 'LD_LIBRARY_PATH=/usr/lib/host']);
             opts = opts.concat(['-v', input_inst_dir+':/input-instance:ro']);
@@ -292,6 +285,20 @@ function startNOVNC(cb) {
             opts = opts.concat(['-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro']);
             opts = opts.concat(['-v', process.cwd()+'/lib:/usr/lib/host:ro']);
             opts = opts.concat(['-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro']);
+
+            if(gpus.length) {
+                //decide on VGL_DISPLAY to use
+                let dindex = Math.floor(Math.random()*gpus.length);
+                let display = [":0.0", ":0.1"][dindex];
+
+                //:0.0 is too slow on gpu2 for some reason.. it's stuck on P8 (powerstate).. but gpu1 is like that
+                //and it's not too slow..
+                if(os.hostname() == "gpu2-pestillilab.psych.indiana.edu") display = ":0.0";
+
+                opts = opts.concat(['--gpus', 'all']);
+                opts = opts.concat(['-e', 'VGL_DISPLAY='+display]);
+            }
+
             startContainer(container_name, opts, (err, cont_id)=>{
                 if(err) return next(err);
                 //find out which vncport it's using
