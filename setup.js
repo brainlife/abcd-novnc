@@ -255,21 +255,23 @@ function startNOVNC(cb) {
         next=>{
             //nvidia-smi --query-gpu=gpu_bus_id --format=csv,noheader
             let out = "";
-            const smi = spawn('nvidia-smi', ['--query-gpu=gpu_bus_id', '--format=csv,noheader']);
-            smi.stdout.on('data', data=>{
-                out += data.toString();
-            });
-            smi.stderr.on('data', data=>{
-                console.error(data.toString());
-            });
-            smi.on('close', code=>{
-                if(code != 0) {
-                    console.error("failed to query gpus");
-                    return next();
-                }
-                gpus = out.trim().split("\n");
-                next();
-            });
+            try {
+                const smi = spawn('nvidia-smi', ['--query-gpu=gpu_bus_id', '--format=csv,noheader']);
+                smi.stdout.on('data', data=>{
+                    out += data.toString();
+                });
+                smi.stderr.on('data', data=>{
+                    console.error(data.toString());
+                });
+                smi.on('close', code=>{
+                    if(code != 0) return next("failed to run nvidia-smi");
+                    gpus = out.trim().split("\n");
+                    next();
+                });
+            } catch (err) {
+                console.error(err);
+                next(); //let's assume that nvidia-smi isn't installed on this machine.. 
+            }
         },
 
         next=>{
