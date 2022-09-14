@@ -7,11 +7,11 @@ const process = require('process');
 const async = require('async');
 
 //where we are going to start novnc
-let hostname = "0.0.0.0";
+let docker_hostname = "0.0.0.0";
 const minport = 11000;
 const maxport = 11200;
 
-function findFree(min_port, max_port, host) {
+function findFree(min_port, max_port, hos="0.0.0.0") {
     return new Promise((resolve, reject)=>{
 
         //create a list of ports
@@ -70,7 +70,7 @@ if(process.env.BRAINLIFE_HOSTSCRATCH) {
     urlbase = "http://localhost:8080";
     //we use docker engine on the host, so what's where we need to reach to find out
     //if are running things
-    hostname = "host.docker.internal";
+    docker_hostname = "host.docker.internal";
 }
 
 console.log(`input_dir ${input_dir}`);
@@ -184,7 +184,7 @@ async.series([
 
     next=>{
         console.log("looking for an open port");
-        findFree(minport, maxport, hostname).then(_port=>{
+        findFree(minport, maxport).then(_port=>{
             port = _port;
             console.log("going to use ", port);
             next();
@@ -377,7 +377,7 @@ function startNOVNC(cb) {
 
         next=>{
             console.log("waiting for container.vncserver", vncPort);
-            tcpportused.waitUntilUsedOnHost(vncPort, hostname, 200, 9000) //port, retry, timeout
+            tcpportused.waitUntilUsedOnHost(vncPort, docker_hostname, 200, 9000) //port, retry, timeout
             .then(()=>{
                 console.log("vncserver is ready!");
                 next();
@@ -387,7 +387,7 @@ function startNOVNC(cb) {
         next=>{
             const novnc_out = fs.openSync('./novnc.log', 'a');
             const novnc_err = fs.openSync('./novnc.log', 'a');
-            const novnc = spawn('/usr/local/noVNC/utils/novnc_proxy', ['--listen', port, '--vnc', hostname+":"+vncPort], {
+            const novnc = spawn('/usr/local/noVNC/utils/novnc_proxy', ['--listen', port, '--vnc', docker_hostname+":"+vncPort], {
                 detached: true, stdio: ['ignore', novnc_out, novnc_err]
             });
             novnc.unref();
