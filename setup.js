@@ -6,8 +6,30 @@ const path = require('path');
 const process = require('process');
 const async = require('async');
 
+//where we are going to start novnc
+let hostname = "0.0.0.0";
 const minport = 11000;
 const maxport = 11200;
+
+function findFree(min_port, max_port, host) {
+    return new Promise((resolve, reject)=>{
+
+        //create a list of ports
+        var ports = [];
+        for(var p = min_port; p <= max_port; ++p) ports.push(p);
+
+        //then itereate
+        async.eachSeries(ports, (p, next)=>{
+            tcpportused.check(p, host).then(inuse=>{
+                if(inuse) next();
+                else resolve(p);
+            }, next);
+        }, (err)=>{
+            if(err) reject(err);
+            else reject(new Error("Couldn't find an open port"));
+        });
+    });
+}
 
 //load config from local directory
 const config = require('./config.json');
@@ -20,6 +42,7 @@ console.log("starting setup");
 let inst_path = '../../'+config.input_instance_id;
 let input_dir = "/input-instance/"+config.input_task_id;
 let src_path = inst_path+'/'+config.input_task_id;
+let urlbase = "https://"+os.hostname();
 if(config.subdir) {
     input_dir += '/'+config.subdir;
     src_path += '/'+config.subdir;
@@ -42,6 +65,12 @@ if(process.env.BRAINLIFE_HOSTSCRATCH) {
     abs_inst_dir = process.env.BRAINLIFE_HOSTSCRATCH+"/"+config.input_instance_id;
     abs_src_path = abs_inst_dir+"/"+config.input_task_id;
     if(config.subdir) abs_src_path += "/"+config.subdir;
+
+    //point it to the localhost (TODO - port might not be 8080?)
+    urlbase = "http://localhost:8080";
+    //we use docker engine on the host, so what's where we need to reach to find out
+    //if are running things
+    hostname = "host.docker.internal";
 }
 
 console.log(`input_dir ${input_dir}`);
@@ -90,8 +119,6 @@ function getDockerPort(id, cb) {
     });
     getp.on('close', (code)=>{
         if(code != 0) return cb(err);
-        //5900/tcp -> 0.0.0.0:49163
-        //5900/tcp -> :::49163
 
         //sometime obtaining port fails.. this is for future debugging
         console.debug(rep);
@@ -157,7 +184,7 @@ async.series([
 
     next=>{
         console.log("looking for an open port");
-        tcpportused.findFree(minport, maxport, '0.0.0.0').then(_port=>{
+        findFree(minport, maxport, hostname).then(_port=>{
             port = _port;
             console.log("going to use ", port);
             next();
@@ -224,7 +251,7 @@ function startNginx(cb) {
         },
 
         next=>{
-            const url = "https://"+os.hostname()+"/vnc/"+port+"/"+password+"/"+index_html;
+            const url = urlbase+"/vnc/"+port+"/"+password+"/"+index_html;
             console.debug(url);
             console.log("waiting for web server to start on", port);
             tcpportused.waitUntilUsed(port, 200, 9000) //port, retry, timeout
@@ -259,7 +286,9 @@ function startWeb(cb) {
         next=>{
             //notebook to open first
             const index_html = "notebooks/main.ipynb";
-            const url = "http://"+os.hostname()+":"+port+"/vnc/"+port+"/"+password+'/'+index_html;
+
+            //does urlbase need to be http?
+            const url = urlbase+":"+port+"/vnc/"+port+"/"+password+'/'+index_html;
 
             console.debug("-----------------------------");
             console.debug(url);
@@ -328,7 +357,7 @@ function startNOVNC(cb) {
 
                 //:0.0 is too slow on gpu2 for some reason.. it's stuck on P8 (powerstate).. but gpu1 is like that
                 //and it's not too slow..
-                if(os.hostname() == "gpu2-pestillilab.psych.indiana.edu") display = ":0.0";
+                if(urlbase == "https://gpu2-pestillilab.psych.indiana.edu") display = ":0.0";
 
                 opts = opts.concat(['--gpus', 'all']);
                 opts = opts.concat(['-e', 'VGL_DISPLAY='+display]);
@@ -348,7 +377,7 @@ function startNOVNC(cb) {
 
         next=>{
             console.log("waiting for container.vncserver", vncPort);
-            tcpportused.waitUntilUsed(vncPort, 200, 9000) //port, retry, timeout
+            tcpportused.waitUntilUsedOnHost(vncPort, hostname, 200, 9000) //port, retry, timeout
             .then(()=>{
                 console.log("vncserver is ready!");
                 next();
@@ -358,7 +387,7 @@ function startNOVNC(cb) {
         next=>{
             const novnc_out = fs.openSync('./novnc.log', 'a');
             const novnc_err = fs.openSync('./novnc.log', 'a');
-            const novnc = spawn('/usr/local/noVNC/utils/novnc_proxy', ['--listen', port, '--vnc', "0.0.0.0:"+vncPort], {
+            const novnc = spawn('/usr/local/noVNC/utils/novnc_proxy', ['--listen', port, '--vnc', hostname+":"+vncPort], {
                 detached: true, stdio: ['ignore', novnc_out, novnc_err]
             });
             novnc.unref();
@@ -368,7 +397,7 @@ function startNOVNC(cb) {
         },
 
         next=>{
-            let url = "https://"+os.hostname()+"/vnc/"+port+"/vnc_lite.html?path=vnc/"+port+"/websockify&password="+password+"&reconnect=true&title="+config.title||"brainlife";
+            let url = urlbase+"/vnc/"+port+"/vnc_lite.html?path=vnc/"+port+"/websockify&password="+password+"&reconnect=true&title="+config.title||"brainlife";
             console.log("waiting for novnc to become ready", url);
             tcpportused.waitUntilUsed(port, 200, 9000) //port, retry, timeout
             .then(()=>{
