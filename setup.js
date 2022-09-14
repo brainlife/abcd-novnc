@@ -106,7 +106,7 @@ function getDockerPort(id, cb) {
 }
 
 function startContainer(name, opts, cb) {
-    console.log("starting", name, "with", opts);
+    console.log("starting", name, ['docker', ...opts, name].join(" "));
 
     let cont_id = "";
     let err = "";
