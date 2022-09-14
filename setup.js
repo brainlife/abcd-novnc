@@ -112,10 +112,10 @@ function getDockerPort(id, cb) {
     let rep = "";
     let err = "";
     getp.stdout.on('data', (data)=>{
-        rep += data.toString().trim();
+        rep += data.toString();
     });
     getp.stderr.on('data', (data)=>{
-        err += data.toString().trim();
+        err += data.toString();
     });
     getp.on('close', (code)=>{
         if(code != 0) return cb(err);
@@ -133,7 +133,8 @@ function getDockerPort(id, cb) {
 }
 
 function startContainer(name, opts, cb) {
-    console.log("starting", name, ['docker', ...opts, name].join(" "));
+    console.log("starting", name);
+    console.debug(['docker', ...opts, name].join(" "));
 
     let cont_id = "";
     let err = "";
