@@ -11,7 +11,7 @@ let docker_hostname = "0.0.0.0";
 const minport = 11000;
 const maxport = 11200;
 
-function findFree(min_port, max_port, hos="0.0.0.0") {
+function findFree(min_port, max_port, host="0.0.0.0") {
     return new Promise((resolve, reject)=>{
 
         //create a list of ports
