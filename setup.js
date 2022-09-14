@@ -1,4 +1,3 @@
-
 const spawn = require('child_process').spawn;
 const fs = require('fs');
 const tcpportused = require('tcp-port-used');
@@ -11,19 +10,44 @@ const minport = 11000;
 const maxport = 11200;
 
 //load config from local directory
-const config = require(process.cwd()+'/config.json');
+const config = require('./config.json');
 
 console.log("starting setup");
 
-//start docker container
-var src_path = '../../'+config.input_instance_id+'/'+config.input_task_id;
-if(config.subdir) src_path += '/'+config.subdir;
-var abs_src_path = path.resolve(src_path);
+//TODO - these path findings can be simplified if start by figuring out the workdir path
+//then override that with BRAINLIFE_HOST_SCRATCH, then contatenate various inst/task dirs
 
+let inst_path = '../../'+config.input_instance_id;
 let input_dir = "/input-instance/"+config.input_task_id;
-if(config.subdir) input_dir += '/'+config.subdir;
+let src_path = inst_path+'/'+config.input_task_id;
+if(config.subdir) {
+    input_dir += '/'+config.subdir;
+    src_path += '/'+config.subdir;
+}
 
-let input_inst_dir = path.resolve(process.cwd()+"/../../"+config.input_instance_id);
+//resolve to absolute path
+let abs_task_dir = path.resolve(".");
+let abs_inst_dir = path.resolve(inst_path);
+let abs_src_path = path.resolve(src_path);
+
+//on local dev environment, vis server container is run on the host
+//the volume src inside container is actually the paths on the host machine.
+//we need to specify the host path to access the scratch volume mounted inside the
+//container for it to be able to access it
+if(process.env.BRAINLIFE_HOSTSCRATCH) {
+    //grab inst/task dir from cwd
+    const tokens = process.cwd().split("/");
+    const insttask = tokens.slice(-2).join("/");
+    abs_task_dir = process.env.BRAINLIFE_HOSTSCRATCH+"/"+insttask;
+    abs_inst_dir = process.env.BRAINLIFE_HOSTSCRATCH+"/"+config.input_instance_id;
+    abs_src_path = abs_inst_dir+"/"+config.input_task_id;
+    if(config.subdir) abs_src_path += "/"+config.subdir;
+}
+
+console.log(`input_dir ${input_dir}`);
+console.log(`abs_src_path ${abs_src_path}`);
+console.log(`abs_inst_dir ${abs_inst_dir}`);
+console.log(`abs_task_dir ${abs_task_dir}`);
 
 const mappings = {
     //nonvc apps
@@ -56,8 +80,8 @@ if(!container_name) {
 function getDockerPort(id, cb) {
     //find host:port that container listens to
     const getp = spawn('docker', ['port', id]);
-    var rep = "";
-    var err = "";
+    let rep = "";
+    let err = "";
     getp.stdout.on('data', (data)=>{
         rep += data.toString().trim();
     });
@@ -68,9 +92,15 @@ function getDockerPort(id, cb) {
         if(code != 0) return cb(err);
         //5900/tcp -> 0.0.0.0:49163
         //5900/tcp -> :::49163
+
+        //sometime obtaining port fails.. this is for future debugging
+        console.debug(rep);
+        console.error(err);
+
         const first = rep.split("\n")[0]; //grab the first line
-        var hostport = first.split(" ")[2]; //grab the 3rd token "0.0.0.0:49163"
-        var port = parseInt(hostport.split(":")[1]); //32780
+        let hostport = first.split(" ")[2]; //grab the 3rd token "0.0.0.0:49163"
+        let port = parseInt(hostport.split(":")[1]); //32780
+
         cb(null, port);
     });
 }
@@ -215,7 +245,7 @@ function startWeb(cb) {
             let opts = ['run', '-d'];
 
             //for Jupyter notebook
-            opts = opts.concat(['-v', input_inst_dir+':/input-instance:ro']);
+            opts = opts.concat(['-v', abs_inst_dir+':/input-instance:ro']);
             opts = opts.concat(['-e', 'INPUT_DIR='+input_dir]);
 
             //TODO - can't get it work through nginx .. so we don't need this at the moment.. but
@@ -284,12 +314,12 @@ function startNOVNC(cb) {
             opts = opts.concat(['--publish-all']);
             opts = opts.concat(['-e', 'INPUT_DIR='+input_dir]);
             opts = opts.concat(['-e', 'X11VNC_PASSWORD='+password]);
-            opts = opts.concat(['-e', 'LD_LIBRARY_PATH=/usr/lib/host']);
-            opts = opts.concat(['-v', input_inst_dir+':/input-instance:ro']);
-            opts = opts.concat(['-v', abs_src_path+':/input:ro']);//deprecated.. use /input-instance
             opts = opts.concat(['-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro']);
-            opts = opts.concat(['-v', process.cwd()+'/lib:/usr/lib/host:ro']);
+            opts = opts.concat(['-e', 'LD_LIBRARY_PATH=/usr/lib/host']);
             opts = opts.concat(['-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro']);
+            opts = opts.concat(['-v', abs_inst_dir+':/input-instance:ro']);
+            opts = opts.concat(['-v', abs_src_path+':/input:ro']);//deprecated.. use /input-instance
+            opts = opts.concat(['-v', abs_task_dir+'/lib:/usr/lib/host:ro']);
 
             if(gpus.length) {
                 //decide on VGL_DISPLAY to use
@@ -350,5 +380,4 @@ function startNOVNC(cb) {
 
     ], cb);
 }
-
 
