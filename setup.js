@@ -364,6 +364,12 @@ function startNOVNC(cb) {
                 opts = opts.concat(['-e', 'VGL_DISPLAY='+display]);
             }
 
+            if(process.env.BRAINLIFE_HOSTSCRATCH) {
+                //allow access to gpu on local machine
+                opts = opts.concat(['--gpus', 'all']);
+                opts = opts.concat(['-e', 'VGL_DISPLAY=:0.0']);
+            }
+
             startContainer(container_name, opts, (err, cont_id)=>{
                 if(err) return next(err);
                 //find out which vncport it's using
