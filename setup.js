@@ -364,11 +364,14 @@ function startNOVNC(cb) {
                 opts = opts.concat(['-e', 'VGL_DISPLAY='+display]);
             }
 
+            /*
+            //I need to set this if the host has gpu on local machine -- how can I tell?
             if(process.env.BRAINLIFE_HOSTSCRATCH) {
                 //allow access to gpu on local machine
                 opts = opts.concat(['--gpus', 'all']);
                 opts = opts.concat(['-e', 'VGL_DISPLAY=:0.0']);
             }
+            */
 
             startContainer(container_name, opts, (err, cont_id)=>{
                 if(err) return next(err);
