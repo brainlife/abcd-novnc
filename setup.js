@@ -80,15 +80,14 @@ console.log(`abs_task_dir ${abs_task_dir}`);
 
 const mappings = {
     //nonvc apps
-    fibernavigator: "soichih/vncserver-fibernavigator",
-    conn: "soichih/ui-conn",
+    fibernavigator: "brainlife/vncserver-fibernavigator",
+    conn: "brainlife/ui-conn:latest",
     trackvis: "brainlife/ui-trackvis",
     wb_view: "brainlife/ui-wb_view",
-    fslview: "soichih/vncserver-fslview:18",
+    fslview: "brainlife/vncserver-fslview:latest",
     fsleyes: "brainlife/ui-fsleyes:2.0",
-    mricrogl: "soichih/vncserver-mricrogl:1.3",
-    "freeview-gpu": "soichih/vncserver-freeview-gpu:2.1",
-    //mrview: "soichih/vncserver-mrview:4.2",
+    mricrogl: "brainlife/vncserver-mricrogl:latest",
+    "freeview-gpu": "brainlife/vncserver-freeview-gpu:2.1",
     mrview: "brainlife/vncserver-mrview:5.1",
     dsistudio: "brainlife/ui-dsistudio:1.0",
     itksnap: "brainlife/ui-itksnap:5.0.9",
