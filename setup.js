@@ -32,7 +32,7 @@ function findFree(min_port, max_port, host="0.0.0.0") {
 }
 
 //load config from local directory
-const config = require('./config.json');
+const config = require('./review-options').resolveInput(require('./config.json'), process.cwd());
 
 console.log("starting setup");
 
@@ -86,6 +86,7 @@ const mappings = {
     wb_view: "brainlife/ui-wb_view",
     fslview: "brainlife/vncserver-fslview:latest",
     fsleyes: "brainlife/ui-fsleyes:2.0",
+    "fsleyes-review": "brainlife/ui-fsleyes-review@sha256:c569c315d2f0e5fbd6642557e328810687074b7c03c10b8e36ea93f0311d7cc1",
     mricrogl: "brainlife/vncserver-mricrogl:latest",
     "freeview-gpu": "brainlife/vncserver-freeview-gpu:2.1",
     mrview: "brainlife/vncserver-mrview:5.1",
@@ -344,6 +345,7 @@ function startNOVNC(cb) {
             opts = opts.concat(['--publish-all']);
             opts = opts.concat(['-e', 'INPUT_DIR='+input_dir]);
             opts = opts.concat(['-e', 'X11VNC_PASSWORD='+password]);
+            opts = opts.concat(require('./review-options')(config));
             opts = opts.concat(['-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro']);
             opts = opts.concat(['-e', 'LD_LIBRARY_PATH=/usr/lib/host']);
             opts = opts.concat(['-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro']);
