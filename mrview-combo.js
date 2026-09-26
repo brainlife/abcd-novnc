@@ -6,6 +6,25 @@ const crypto = require('crypto');
 const https = require('https');
 const { pipeline } = require('stream/promises');
 const { Transform } = require('stream');
+const { execFileSync } = require('child_process');
+
+// Older worker Node versions do not expose fs.statfsSync.
+function diskStat(directory, statfs = fs.statfsSync, run = execFileSync) {
+    if (typeof statfs === 'function') return statfs(directory);
+    try {
+        const output = run('df', ['-Pk', path.resolve(directory)], {
+            encoding: 'utf8', timeout: 10000, env: { ...process.env, LC_ALL: 'C' },
+        });
+        const rows = output.trim().split(/\r?\n/);
+        const match = rows.length === 2 && rows[1].match(/^.+?\s+\d+\s+\d+\s+(\d+)\s+\d+%\s+.+$/);
+        const available = match && Number(match[1]);
+        if (!match || !Number.isSafeInteger(available) || available < 0 ||
+            !Number.isSafeInteger(available * 1024)) throw new Error('Invalid disk capacity');
+        return { bavail: available, bsize: 1024 };
+    } catch (_) {
+        throw new Error('Unable to check temporary storage space. Please try again or contact support.');
+    }
+}
 
 function relative(value) {
     if (typeof value !== 'string' || !value || value.startsWith('/') || /[\\\x00-\x1f\x7f]/.test(value) ||
@@ -241,9 +260,9 @@ async function prepareCombo(config, options) {
     const selectedCacheBytes = plans.filter(plan => !plan.mounted).reduce((sum, plan) => sum + plan.layer.size, 0);
     if (selectedCacheBytes > maxBytes) throw new Error('This selection exceeds the temporary storage limit for a session. Select fewer files and try again.');
     pruneCache(cacheBase, missingBytes, maxBytes, Number(env.MRVIEW_CACHE_TTL_MS || 24 * 3600 * 1000), kept);
-    const statfs = options.diskStat || fs.statfsSync(cacheRoot);
+    const statfs = options.diskStat || diskStat(cacheRoot);
     const diskAvailableBytes = Number(statfs.bavail) * Number(statfs.bsize);
-    const scratchStatfs = options.diskStat || fs.statfsSync(options.taskDir);
+    const scratchStatfs = options.diskStat || diskStat(options.taskDir);
     const scratchAvailableBytes = Number(scratchStatfs.bavail) * Number(scratchStatfs.bsize);
     const scratchCopyBytes = fs.statSync(cacheRoot).dev === fs.statSync(options.taskDir).dev ? 0 : selectedCacheBytes;
     const availableMemoryBytes = options.availableMemoryBytes ?? memoryAvailable();
@@ -320,3 +339,5 @@ module.exports.validateManifest = validateManifest;
 module.exports.resolveSession = resolveSession;
 module.exports.mountedFile = mountedFile;
 module.exports.cacheIdentity = cacheIdentity;
+
+module.exports.diskStat = diskStat;

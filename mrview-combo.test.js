@@ -215,3 +215,42 @@ test('T1w and tracks alone launch without any tensor overlay command', () => fix
     const script = fs.readFileSync(path.join(f.task, 'mrview-combo/xstartup'), 'utf8');
     assert(!script.includes('-overlay.')); assert(script.includes('-tractography.load'));
 }));
+
+test('disk capacity uses native statfs when available', () => {
+    const value = { bavail: 123, bsize: 4096 };
+    assert.equal(prepare.diskStat('/tmp', directory => {
+        assert.equal(directory, '/tmp'); return value;
+    }, () => { throw new Error('df must not run'); }), value);
+});
+test('older workers use df without shell expansion, including paths with spaces', () => {
+    const directory = '/tmp/scene with spaces;$(command)';
+    const result = prepare.diskStat(directory, null, (command, args, options) => {
+        assert.equal(command, 'df'); assert.deepEqual(args, ['-Pk', directory]);
+        assert.equal(options.env.LC_ALL, 'C'); assert.equal(options.timeout, 10000);
+        return 'Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/disk 1000 600 400 60% /mount with spaces\n';
+    });
+    assert.equal(result.bavail * result.bsize, 409600);
+});
+test('unreadable or malformed fallback capacity fails closed', () => {
+    for (const output of ['garbage', 'Filesystem\n/dev/disk 100 50 -1 50% /',
+        'Filesystem\n/dev/disk 100 50 999999999999999999999 50% /']) {
+        assert.throws(() => prepare.diskStat('/tmp', null, () => output), /Unable to check temporary storage/);
+    }
+    assert.throws(() => prepare.diskStat('/tmp', null, () => { throw new Error('df failed'); }),
+        /Unable to check temporary storage/);
+});
+test('disk fallback reads real filesystem capacity', () => {
+    const result = prepare.diskStat(os.tmpdir(), null);
+    assert(result.bavail >= 0); assert.equal(result.bsize, 1024);
+});
+test('preparation works without fs.statfsSync on older workers', () => fixture(async f => {
+    const original = fs.statfsSync;
+    try {
+        fs.statfsSync = undefined;
+        delete f.options.diskStat;
+        await prepare(f.config, f.options);
+        const report = JSON.parse(fs.readFileSync(path.join(f.task, 'mrview-preflight.json')));
+        assert.equal(report.state, 'ready'); assert(report.diskAvailableBytes >= 0);
+        assert(report.scratchAvailableBytes >= 0);
+    } finally { fs.statfsSync = original; }
+}));
