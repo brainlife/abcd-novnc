@@ -90,6 +90,7 @@ const mappings = {
     mricrogl: "brainlife/vncserver-mricrogl:latest",
     "freeview-gpu": "brainlife/vncserver-freeview-gpu:2.1",
     mrview: "brainlife/vncserver-mrview:5.1",
+    "mrview-combo": "brainlife/vncserver-mrview:5.2",
     dsistudio: "brainlife/ui-dsistudio:1.0",
     itksnap: "brainlife/ui-itksnap:5.0.9",
     brainstorm: "brainlife/ui-brainstorm:210128",
@@ -100,6 +101,7 @@ const mappings = {
     mnefif: "brainlife/ui-mne:0.22.1",
 }
 
+let comboOptions = [];
 const container_name = mappings[config.type];
 if(!container_name) {
     console.error("unknown container type", config.type);
@@ -172,6 +174,10 @@ let port; //novnc or nginx port between 11000 - 12000
 
 async.series([
     next=>{
+        require('./mrview-combo')(config, {taskDir: process.cwd(), hostTaskDir: abs_task_dir})
+            .then(options => { comboOptions = options; next(); }).catch(next);
+    },
+    next=>{
         console.log("docker pulling container:", container_name);
         dockerPull(container_name, next);
     },
@@ -201,7 +207,10 @@ async.series([
     },
 
 ], err=>{
-    if(err) throw err;
+    if(err) {
+        fs.writeFileSync('setup-error.txt', 'Viewer preparation failed. ' + (err.message || String(err)));
+        throw err;
+    }
     console.log("all done");
 });
 
@@ -346,11 +355,12 @@ function startNOVNC(cb) {
             opts = opts.concat(['-e', 'INPUT_DIR='+input_dir]);
             opts = opts.concat(['-e', 'X11VNC_PASSWORD='+password]);
             opts = opts.concat(require('./review-options')(config));
+            opts = opts.concat(comboOptions);
             opts = opts.concat(['-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro']);
             opts = opts.concat(['-e', 'LD_LIBRARY_PATH=/usr/lib/host']);
-            opts = opts.concat(['-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro']);
-            opts = opts.concat(['-v', abs_inst_dir+':/input-instance:ro']);
-            opts = opts.concat(['-v', abs_src_path+':/input:ro']);//deprecated.. use /input-instance
+            if(config.type !== 'mrview-combo') opts = opts.concat(['-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro']);
+            if(config.type !== 'mrview-combo') opts = opts.concat(['-v', abs_inst_dir+':/input-instance:ro']);
+            if(config.type !== 'mrview-combo') opts = opts.concat(['-v', abs_src_path+':/input:ro']);//deprecated.. use /input-instance
             opts = opts.concat(['-v', abs_task_dir+'/lib:/usr/lib/host:ro']);
 
             if(gpus.length) {

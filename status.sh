@@ -2,6 +2,11 @@
 
 #state management is really poor.. this script doesn't work well when container fails to start, stopped, etc
 
+if [ -f setup-error.txt ]; then
+    cat setup-error.txt
+    exit 2
+fi
+
 if [ -f url.txt ]
 then
     #check to see if the docker container exists
