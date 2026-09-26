@@ -409,7 +409,12 @@ function startNOVNC(cb) {
         next=>{
             const novnc_out = fs.openSync('./novnc.log', 'a');
             const novnc_err = fs.openSync('./novnc.log', 'a');
-            const novnc = spawn('/usr/local/noVNC/utils/novnc_proxy', ['--listen', port, '--vnc', docker_hostname+":"+vncPort], {
+            const proxyArgs = ['--listen', port, '--vnc', docker_hostname+":"+vncPort];
+            if (config.type === 'mrview-combo') {
+                try { proxyArgs.push('--web', require('./mrview-web')(process.cwd())); }
+                catch (err) { return next(err); }
+            }
+            const novnc = spawn('/usr/local/noVNC/utils/novnc_proxy', proxyArgs, {
                 detached: true, stdio: ['ignore', novnc_out, novnc_err]
             });
             novnc.unref();
@@ -419,7 +424,8 @@ function startNOVNC(cb) {
         },
 
         next=>{
-            let url = urlbase+"/vnc/"+port+"/vnc_lite.html?path=vnc/"+port+"/websockify&password="+password+"&reconnect=true&title="+config.title||"brainlife";
+            const page = config.type === 'mrview-combo' ? 'mrview.html' : 'vnc_lite.html';
+            let url = urlbase+"/vnc/"+port+"/"+page+"?path=vnc/"+port+"/websockify&password="+password+"&reconnect=true&title="+encodeURIComponent(config.title || "brainlife");
             console.log("waiting for novnc to become ready", url);
             tcpportused.waitUntilUsed(port, 200, 9000) //port, retry, timeout
             .then(()=>{
