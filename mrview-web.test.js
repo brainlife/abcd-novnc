@@ -56,8 +56,9 @@ test('web root serves only client assets, not task config, tokens or data', () =
         fs.writeFileSync(path.join(task, 'config.json'), 'private');
         fs.writeFileSync(path.join(novnc, 'private.txt'), 'private');
         const web = prepareWeb(task, novnc);
-        assert.deepEqual(fs.readdirSync(web).sort(), ['core', 'mrview-gestures.js', 'mrview.html', 'vendor']);
+        assert.deepEqual(fs.readdirSync(web).sort(), ['core', 'mrview-gestures.js', 'mrview.html', 'vendor', 'vnc.html']);
         assert.equal(fs.realpathSync(path.join(web, 'core')), fs.realpathSync(path.join(novnc, 'core')));
+        assert.equal(fs.readFileSync(path.join(web, 'vnc.html'), 'utf8'), fs.readFileSync(path.join(web, 'mrview.html'), 'utf8'));
         assert.equal(prepareWeb(task, novnc), web);
     } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });

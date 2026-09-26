@@ -269,7 +269,7 @@ function startNginx(cb) {
             .then(()=>{
                 fs.writeFileSync("url.txt", url);
                 next();
-            }).catch(next);
+            }).catch(() => next(new Error('The browser connection service did not start in time. Check novnc.log in the viewer task.')));
         },
 
     ], cb);
@@ -310,7 +310,7 @@ function startWeb(cb) {
             .then(()=>{
                 fs.writeFileSync("url.txt", url);
                 next();
-            }).catch(next);
+            }).catch(() => next(new Error('The browser connection service did not start in time. Check novnc.log in the viewer task.')));
         },
 
     ], cb);
@@ -403,7 +403,7 @@ function startNOVNC(cb) {
             .then(()=>{
                 console.log("vncserver is ready!");
                 next();
-            });
+            }).catch(() => next(new Error('The viewer container did not start its desktop in time. Check the container logs.')));
         },
 
         next=>{
@@ -432,7 +432,7 @@ function startNOVNC(cb) {
                 console.log("started novnc");
                 fs.writeFileSync("url.txt", url);
                 next();
-            }).catch(next);
+            }).catch(() => next(new Error('The browser connection service did not start in time. Check novnc.log in the viewer task.')));
          },
 
     ], cb);

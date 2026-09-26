@@ -16,5 +16,7 @@ module.exports = function prepareWeb(taskDir, noVncRoot = '/usr/local/noVNC') {
     }
     for (const name of ['mrview.html', 'mrview-gestures.js'])
         fs.copyFileSync(path.join(__dirname, name), path.join(root, name));
+    // novnc_proxy checks for this entry point before starting its web server.
+    fs.copyFileSync(path.join(__dirname, 'mrview.html'), path.join(root, 'vnc.html'));
     return root;
 };
