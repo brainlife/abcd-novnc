@@ -254,3 +254,31 @@ test('preparation works without fs.statfsSync on older workers', () => fixture(a
         assert(report.scratchAvailableBytes >= 0);
     } finally { fs.statfsSync = original; }
 }));
+
+test('display aliases fit MrView path truncation and show map names and tract annotations', () => {
+    const paths = prepare.displayPaths([
+        {role:'base', path:'t1.nii.gz', label:'neuro/anat/t1w · t1.nii.gz'},
+        ...['fa', 'ad', 'md', 'rd'].map(map => ({role:'overlay', path:map+'.nii.gz', label:'neuro/tensor · '+map+'.nii.gz'})),
+        {role:'tract', path:'track.tck', label:'AF_L · track.tck'},
+        {role:'tract', path:'track.tck', label:'AF_R · track.tck'},
+    ]);
+    assert.deepEqual(paths, ['/scene/T1w.nii.gz', '/scene/FA.nii.gz', '/scene/AD.nii.gz', '/scene/MD.nii.gz', '/scene/RD.nii.gz', '/scene/AF_L.tck', '/scene/AF_R.tck']);
+});
+test('duplicate and long labels stay unique, short and safe', () => {
+    const layers = Array.from({length: 100}, () => ({role:'overlay', path:'fa.nii.gz', label:'a very long annotation / with unsafe characters , ; · fa.nii.gz'}));
+    const paths = prepare.displayPaths(layers);
+    assert.equal(new Set(paths).size, 100);
+    assert(paths.every(p => p.length <= 35 && /^\/scene\/FA--[a-zA-Z0-9_-]+\.nii\.gz$/.test(p)));
+    assert.equal(prepare.displayPaths([{role:'tract', path:'track.tck', label:'AF_L · track.tck'}, {role:'tract', path:'track.tck', label:'AF_L · track.tck'}])[1], '/scene/AF_L--2.tck');
+});
+test('launch uses readable bind aliases without changing source files', () => fixture(async f => {
+    f.manifest.layers[1].label = 'AF_L · track.tck'; f.publish();
+    const binds = await prepare(f.config, f.options);
+    assert(binds.some(value => value.includes('target=/scene/AF_L.tck,readonly')));
+    const startup = fs.readFileSync(path.join(f.task, 'mrview-combo/xstartup'), 'utf8');
+    assert(startup.includes("'-tractography.load' '/scene/AF_L.tck'"));
+    const stored = JSON.parse(fs.readFileSync(path.join(f.task, 'mrview-combo/manifest.json')));
+    assert.equal(stored.layers[1].datasetId, tractId);
+    assert.equal(stored.layers[1].path, 'track.tck');
+    assert.equal(fs.readFileSync(path.join(f.sourceRoot, projectId, tractId, 'track.tck'), 'utf8'), 'original');
+}));

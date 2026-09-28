@@ -33,6 +33,37 @@ function relative(value) {
 }
 function inside(root, file) { return file.startsWith(root + path.sep); }
 function slug(value) { return String(value).normalize('NFKD').replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 80) || 'layer'; }
+// MrView 3.0 shortens full paths to their final 35 characters. Keep the
+// entire display path within that budget; retain provenance in manifest.json.
+function displayPaths(layers) {
+    const used = new Set();
+    return layers.map(layer => {
+        const filename = path.posix.basename(layer.path);
+        const extension = filename.match(/\.(tck|nii|mif)(\.gz)?$/i)[0];
+        const stem = filename.slice(0, -extension.length);
+        const suffix = ' · ' + filename;
+        let label = String(layer.label || '');
+        if (label.endsWith(suffix)) label = label.slice(0, -suffix.length);
+        if (/^(neuro\/)?(tensor|anat\/t1w|track\/tck)$/.test(label)) label = '';
+        let name;
+        if (layer.role === 'overlay') {
+            const map = stem.match(/(?:^|[_-])(fa|ad|md|rd|adc|cl|cp|cs)(?:[_-]|$)/i);
+            name = map ? map[1].toUpperCase() : stem;
+            if (label && label.toLowerCase() !== name.toLowerCase()) name += '--' + label;
+        } else if (layer.role === 'tract') name = label || (stem === 'track' ? 'Tract' : stem);
+        else name = 'T1w';
+        name = slug(name).replace(/^-+|-+$/g, '') || 'Layer';
+        const budget = 35 - '/scene/'.length - extension.length;
+        let count = 1, target;
+        do {
+            const disambiguator = count === 1 ? '' : '--' + count;
+            target = '/scene/' + name.slice(0, budget - disambiguator.length) + disambiguator + extension;
+            count++;
+        } while (used.has(target.toLowerCase()));
+        used.add(target.toLowerCase());
+        return target;
+    });
+}
 function quote(value) { return "'" + value.replace(/'/g, "'\\''") + "'"; }
 // This address is trusted service configuration, never taken from task config.
 const DEFAULT_WAREHOUSE_API = 'https://brainlife.io/api/warehouse/';
@@ -280,6 +311,7 @@ async function prepareCombo(config, options) {
     if (missingBytes > diskAvailableBytes * 0.9) throw new Error('There isn’t enough space to open these files. Select fewer files and try again.');
     const binds = [];
     const layers = [];
+    const targets = displayPaths(plans.map(plan => plan.layer));
     for (const [index, plan] of plans.entries()) {
         report.completedFiles = index; writeReport();
         const layer = plan.layer;
@@ -308,9 +340,7 @@ async function prepareCombo(config, options) {
             source = path.join(options.hostTaskDir, 'mrview-combo', `source-${cacheIdentity(layer)}`);
         }
         if (!path.isAbsolute(source) || /[,\n\r]/.test(source)) throw new Error('Invalid file bind path');
-        const extension = layer.path.match(/\.(tck|nii|mif)(\.gz)?$/i)[0];
-        const alias = `${slug(layer.label)}__${layer.datasetId}__${index + 1}${extension}`;
-        const target = `/scene/files/${alias}`;
+        const target = targets[index];
         binds.push('--mount', `type=bind,source=${source},target=${target},readonly`);
         layers.push({ datasetId: layer.datasetId, path: layer.path, size: layer.size, role: layer.role, label: layer.label, containerPath: target });
     }
@@ -341,3 +371,5 @@ module.exports.mountedFile = mountedFile;
 module.exports.cacheIdentity = cacheIdentity;
 
 module.exports.diskStat = diskStat;
+
+module.exports.displayPaths = displayPaths;
