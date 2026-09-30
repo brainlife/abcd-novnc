@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>ITK-SNAP desktop</title>
+<style>
+html,body { margin:0; height:100%; overflow:hidden; font:13px system-ui,sans-serif; background:#20242a; color:#fff; }
+body { display:flex; flex-direction:column; }
+header { display:flex; align-items:center; gap:10px; padding:6px 12px; flex-shrink:0; }
+#status { margin-right:auto; }
+button { border:1px solid #657080; border-radius:4px; background:#303944; color:white; padding:4px 10px; cursor:pointer; }
+button:disabled { opacity:.5; cursor:default; }
+button:focus-visible { outline:2px solid #91c8ff; }
+#screen { flex:1; min-height:0; overflow:hidden; touch-action:none; }
+.hint { color:#c1cad6; }
+@media(max-width:650px) { .hint { display:none; } }
+</style>
+<script src="./mrview-gestures.js"></script>
+</head>
+<body>
+<header>
+<span id="status" role="status">Connecting to ITK-SNAP…</span>
+<span class="hint">Pinch over the image to zoom</span>
+<button id="out" aria-label="Zoom out" disabled>−</button>
+<button id="in" aria-label="Zoom in" disabled>+</button>
+<button id="fullscreen">Full screen</button>
+<button id="reconnect" hidden>Reconnect</button>
+</header>
+<div id="screen"></div>
+<script type="module">
+import RFB from './core/rfb.js';
+const params = new URLSearchParams(location.search);
+const endpoint = new URL(location.href);
+endpoint.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+endpoint.pathname = '/' + (params.get('path') || 'websockify').replace(/^\/+/, '');
+endpoint.search = ''; endpoint.hash = '';
+const screen = document.getElementById('screen');
+const status = document.getElementById('status');
+const rfb = new RFB(screen, endpoint.href, { credentials: { password: params.get('password') || '' } });
+rfb.scaleViewport = true;
+rfb.resizeSession = true;
+const gestures = window.installMrViewGestures(screen, rfb, { zoomKeys: [[0xff52, 'ArrowUp'], [0xff54, 'ArrowDown']] });
+rfb.addEventListener('connect', () => {
+    status.textContent = 'ITK-SNAP';
+    document.getElementById('in').disabled = document.getElementById('out').disabled = false;
+});
+rfb.addEventListener('disconnect', () => {
+    status.textContent = 'Desktop disconnected';
+    document.getElementById('in').disabled = document.getElementById('out').disabled = true;
+    document.getElementById('reconnect').hidden = false;
+});
+rfb.addEventListener('securityfailure', () => { status.textContent = 'Unable to authenticate the desktop connection.'; });
+for (const [id, direction] of [['in', 1], ['out', -1]]) {
+    const button = document.getElementById(id);
+    // Keep the active remote application focused when clicking local controls.
+    button.addEventListener('mousedown', event => event.preventDefault());
+    button.onclick = () => { gestures.zoom(direction); rfb.focus(); };
+}
+document.getElementById('reconnect').onclick = () => location.reload();
+const fullscreen = document.getElementById('fullscreen');
+fullscreen.hidden = !document.fullscreenEnabled;
+fullscreen.onclick = async () => {
+    try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else await document.documentElement.requestFullscreen();
+    } catch (_) { status.textContent = 'Use Open in new tab to expand the desktop.'; }
+};
+document.addEventListener('fullscreenchange', () => {
+    fullscreen.textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen';
+});
+window.addEventListener('pagehide', () => { gestures.dispose(); rfb.disconnect(); }, { once:true });
+</script>
+</body>
+</html>

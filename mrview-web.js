@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 // Serve only static viewer code, never the task directory or session data.
-module.exports = function prepareWeb(taskDir, noVncRoot = '/usr/local/noVNC', standardClient = false) {
+module.exports = function prepareWeb(taskDir, noVncRoot = '/usr/local/noVNC', isItk = false) {
     const root = path.join(taskDir, 'mrview-web');
     fs.mkdirSync(root, { recursive: true });
     for (const name of ['core', 'vendor']) {
@@ -14,14 +14,10 @@ module.exports = function prepareWeb(taskDir, noVncRoot = '/usr/local/noVNC', st
         const target = path.join(root, name);
         if (!fs.existsSync(target)) fs.symlinkSync(source, target, 'dir');
     }
-    if (standardClient) {
-        fs.copyFileSync(path.join(noVncRoot, 'vnc_lite.html'), path.join(root, 'vnc_lite.html'));
-        fs.copyFileSync(path.join(noVncRoot, 'vnc_lite.html'), path.join(root, 'vnc.html'));
-        return root;
-    }
-    for (const name of ['mrview.html', 'mrview-gestures.js'])
+    const page = isItk ? 'itksnap.html' : 'mrview.html';
+    for (const name of [page, 'mrview-gestures.js'])
         fs.copyFileSync(path.join(__dirname, name), path.join(root, name));
     // novnc_proxy checks for this entry point before starting its web server.
-    fs.copyFileSync(path.join(__dirname, 'mrview.html'), path.join(root, 'vnc.html'));
+    fs.copyFileSync(path.join(__dirname, page), path.join(root, 'vnc.html'));
     return root;
 };

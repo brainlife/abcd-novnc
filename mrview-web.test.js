@@ -5,7 +5,7 @@ const os = require('os');
 const path = require('path');
 const install = require('./mrview-gestures');
 const prepareWeb = require('./mrview-web');
-function fixture() {
+function fixture(options = {}) {
     const handlers = new Map(), events = new Map(), keys = [];
     const screen = { addEventListener: (name, fn, opts) => {
         assert.equal(opts.capture, true); assert.equal(opts.passive, false); handlers.set(name, fn);
@@ -13,7 +13,7 @@ function fixture() {
     const rfb = { sendKey: (...args) => keys.push(args), addEventListener: (name, fn) => events.set(name, fn),
         removeEventListener: name => events.delete(name) };
     let time = 1000;
-    const gestures = install(screen, rfb, { now: () => time });
+    const gestures = install(screen, rfb, { now: () => time, ...options });
     return { handlers, events, keys, gestures, tick: ms => time += ms,
         send(name, props) {
             let cancelled = false;
@@ -63,7 +63,7 @@ test('web root serves only client assets, not task config, tokens or data', () =
     } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 
-test('ITK-SNAP serves the standard client without MrView gestures or task files', () => {
+test('ITK-SNAP serves its fullscreen client and shared gestures without task files', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'itksnap-web-'));
     try {
         const task = path.join(root, 'task'), novnc = path.join(root, 'novnc');
@@ -71,7 +71,23 @@ test('ITK-SNAP serves the standard client without MrView gestures or task files'
         fs.writeFileSync(path.join(novnc, 'vnc_lite.html'), 'standard client');
         fs.writeFileSync(path.join(task, 'config.json'), 'private token');
         const web = prepareWeb(task, novnc, true);
-        assert.deepEqual(fs.readdirSync(web).sort(), ['core', 'vnc.html', 'vnc_lite.html']);
-        assert.equal(fs.readFileSync(path.join(web, 'vnc_lite.html'), 'utf8'), 'standard client');
+        assert.deepEqual(fs.readdirSync(web).sort(), ['core', 'itksnap.html', 'mrview-gestures.js', 'vnc.html']);
+        const html = fs.readFileSync(path.join(web, 'itksnap.html'), 'utf8');
+        assert.equal(fs.readFileSync(path.join(web, 'vnc.html'), 'utf8'), html);
+        assert.match(html, /rfb.resizeSession = true/);
+        assert.match(html, /document.exitFullscreen/);
+        assert.match(html, /document.documentElement.requestFullscreen/);
+        assert.match(html, /0xff52, 'ArrowUp'/);
     } finally { fs.rmSync(root, {recursive: true, force: true}); }
+});
+
+test('ITK-SNAP pinch uses Ctrl+Up/Down and releases Control', () => {
+    const f = fixture({ zoomKeys: [[0xff52, 'ArrowUp'], [0xff54, 'ArrowDown']] });
+    f.events.get('connect')();
+    f.send('wheel', { ctrlKey: true, deltaY: -12 });
+    f.send('wheel', { ctrlKey: true, deltaY: 12 });
+    assert.deepEqual(f.keys, [
+        [0xffe3, 'ControlLeft', true], [0xff52, 'ArrowUp'], [0xffe3, 'ControlLeft', false],
+        [0xffe3, 'ControlLeft', true], [0xff54, 'ArrowDown'], [0xffe3, 'ControlLeft', false]
+    ]);
 });

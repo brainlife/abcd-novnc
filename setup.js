@@ -428,7 +428,7 @@ function startNOVNC(cb) {
         },
 
         next=>{
-            const page = config.type === 'mrview-combo' ? 'mrview.html' : 'vnc_lite.html';
+            const page = config.type === 'mrview-combo' ? 'mrview.html' : config.type === 'itksnap-combo' ? 'itksnap.html' : 'vnc_lite.html';
             let url = urlbase+"/vnc/"+port+"/"+page+"?path=vnc/"+port+"/websockify&password="+password+"&reconnect=true&title="+encodeURIComponent(config.title || "brainlife");
             console.log("waiting for novnc to become ready", url);
             tcpportused.waitUntilUsed(port, 200, 9000) //port, retry, timeout
