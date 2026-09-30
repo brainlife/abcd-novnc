@@ -51,6 +51,7 @@ function displayPaths(layers) {
             name = map ? map[1].toUpperCase() : stem;
             if (label && label.toLowerCase() !== name.toLowerCase()) name += '--' + label;
         } else if (layer.role === 'tract') name = label || (stem === 'track' ? 'Tract' : stem);
+        else if (layer.role === 'segmentation') name = label || stem || 'Segmentation';
         else name = 'T1w';
         name = slug(name).replace(/^-+|-+$/g, '') || 'Layer';
         const budget = 35 - '/scene/'.length - extension.length;
@@ -108,10 +109,11 @@ function resolveSession(config, env, request = https.request) {
     });
 }
 function validateManifest(config, manifest, now = Date.now()) {
+    const isItk = config.type === 'itksnap-combo';
     if (!manifest || typeof manifest !== 'object') throw new Error('Invalid MrView file list');
     if (manifest.showTensorOnStart !== undefined && typeof manifest.showTensorOnStart !== 'boolean')
         throw new Error('Invalid initial tensor visibility');
-    if (manifest.version !== 3 || manifest.audience !== 'brainlife-mrview' || manifest.projectId !== config.project_id ||
+    if (manifest.version !== 3 || manifest.audience !== (isItk ? 'brainlife-itksnap' : 'brainlife-mrview') || manifest.projectId !== config.project_id ||
         !/^[a-f0-9]{24}$/i.test(manifest.projectId) || !manifest.subject ||
         !Number.isFinite(manifest.issuedAt) || !Number.isFinite(manifest.expiresAt) || manifest.expiresAt * 1000 <= now ||
         manifest.issuedAt * 1000 > now + 60000 || manifest.expiresAt - manifest.issuedAt > 4 * 3600)
@@ -121,7 +123,7 @@ function validateManifest(config, manifest, now = Date.now()) {
     const seen = new Set();
     for (const layer of manifest.layers) {
         if (layer.projectId !== manifest.projectId || !/^[a-f0-9]{24}$/i.test(layer.datasetId) ||
-            !['base', 'overlay', 'tract'].includes(layer.role) || !['s3fs', 's3fs-embargo'].includes(layer.storage) ||
+            !(isItk ? ['base', 'overlay', 'segmentation'] : ['base', 'overlay', 'tract']).includes(layer.role) || !['s3fs', 's3fs-embargo'].includes(layer.storage) ||
             !Number.isSafeInteger(layer.size) || layer.size <= 0 || typeof layer.etag !== 'string') throw new Error('Invalid project file');
         relative(layer.path);
         const mode = layer.accessMode || 'mount-or-download';
@@ -132,6 +134,7 @@ function validateManifest(config, manifest, now = Date.now()) {
         if (mode !== 'copy-download' && (sourceProjectId !== manifest.projectId || sourceDatasetId !== layer.datasetId)) throw new Error('Direct source escapes selected project');
         const suffix = `${sourceProjectId}/${sourceDatasetId}/${layer.path}`;
         if (![suffix, `archive/${suffix}`].includes(layer.key)) throw new Error('File escapes selected project');
+        if (isItk && !/\.nii(\.gz)?$/i.test(layer.path)) throw new Error('ITK-SNAP requires NIfTI image files');
         if (!(layer.role === 'tract' ? /\.tck$/i : /\.(nii|mif)(\.gz)?$/i).test(layer.path)) throw new Error('Invalid file format');
         const url = new URL(layer.url);
         if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Invalid download URL');
@@ -265,7 +268,7 @@ function pruneCache(base, needed, maxBytes, ttlMs, keep = new Set()) {
     }
 }
 async function prepareCombo(config, options) {
-    if (config.type !== 'mrview-combo') return [];
+    if (!['mrview-combo', 'itksnap-combo'].includes(config.type)) return [];
     const env = options.env || process.env;
     const manifest = validateManifest(config, await (options.resolveSession || resolveSession)(config, env));
     const directory = path.join(options.taskDir, 'mrview-combo');
@@ -345,18 +348,26 @@ async function prepareCombo(config, options) {
         layers.push({ datasetId: layer.datasetId, path: layer.path, size: layer.size, role: layer.role, label: layer.label, containerPath: target });
     }
     const base = layers.find(layer => layer.role === 'base');
-    const args = ['-load', base.containerPath];
-    let firstOverlay = true;
-    for (const layer of layers.filter(layer => layer.role !== 'base')) {
-        args.push(layer.role === 'tract' ? '-tractography.load' : '-overlay.load', layer.containerPath);
-        if (layer.role === 'overlay') {
-            args.push('-overlay.opacity', '0.5', '-overlay.visible', firstOverlay && manifest.showTensorOnStart !== false ? '1' : '0');
-            firstOverlay = false;
+    const isItk = config.type === 'itksnap-combo';
+    const args = [isItk ? '-g' : '-load', base.containerPath];
+    if (isItk) {
+        const images = layers.filter(layer => layer.role === 'overlay');
+        const segments = layers.filter(layer => layer.role === 'segmentation');
+        if (images.length) args.push('-o', ...images.map(layer => layer.containerPath));
+        if (segments.length) args.push('-s', ...segments.map(layer => layer.containerPath));
+    } else {
+        let firstOverlay = true;
+        for (const layer of layers.filter(layer => layer.role !== 'base')) {
+            args.push(layer.role === 'tract' ? '-tractography.load' : '-overlay.load', layer.containerPath);
+            if (layer.role === 'overlay') {
+                args.push('-overlay.opacity', '0.5', '-overlay.visible', firstOverlay && manifest.showTensorOnStart !== false ? '1' : '0');
+                firstOverlay = false;
+            }
         }
+        args.push('-fullscreen');
     }
-    args.push('-fullscreen');
     const startup = path.join(directory, 'xstartup');
-    fs.writeFileSync(startup, '#!/bin/bash\nset -eu\nexport PATH="$PATH:/mrtrix3/bin"\nvglclient &\nXFCE_PANEL_MIGRATE_DEFAULT=true startxfce4 &\nvglrun mrview ' + args.map(quote).join(' ') + '\n', { mode: 0o755 });
+    fs.writeFileSync(startup, '#!/bin/bash\nset -eu\n' + (isItk ? 'unset SESSION_MANAGER DBUS_SESSION_BUS_ADDRESS\nXFCE_PANEL_MIGRATE_DEFAULT=true startxfce4 &\nexec itksnap ' : 'export PATH="$PATH:/mrtrix3/bin"\nvglclient &\nXFCE_PANEL_MIGRATE_DEFAULT=true startxfce4 &\nvglrun mrview ') + args.map(quote).join(' ') + '\n', { mode: 0o755 });
     // Mount only the launcher and exact files, never the task root, cache root, bucket or project.
     binds.push('--mount', `type=bind,source=${options.hostTaskDir}/mrview-combo/xstartup,target=/root/.vnc/xstartup,readonly`);
     fs.writeFileSync(path.join(directory, 'manifest.json'), JSON.stringify({ projectId: manifest.projectId, subject: manifest.subject, layers }, null, 2));

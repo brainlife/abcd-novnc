@@ -62,3 +62,16 @@ test('web root serves only client assets, not task config, tokens or data', () =
         assert.equal(prepareWeb(task, novnc), web);
     } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
+
+test('ITK-SNAP serves the standard client without MrView gestures or task files', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'itksnap-web-'));
+    try {
+        const task = path.join(root, 'task'), novnc = path.join(root, 'novnc');
+        fs.mkdirSync(task); fs.mkdirSync(path.join(novnc, 'core'), {recursive: true});
+        fs.writeFileSync(path.join(novnc, 'vnc_lite.html'), 'standard client');
+        fs.writeFileSync(path.join(task, 'config.json'), 'private token');
+        const web = prepareWeb(task, novnc, true);
+        assert.deepEqual(fs.readdirSync(web).sort(), ['core', 'vnc.html', 'vnc_lite.html']);
+        assert.equal(fs.readFileSync(path.join(web, 'vnc_lite.html'), 'utf8'), 'standard client');
+    } finally { fs.rmSync(root, {recursive: true, force: true}); }
+});

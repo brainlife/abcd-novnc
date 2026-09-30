@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 // Serve only static viewer code, never the task directory or session data.
-module.exports = function prepareWeb(taskDir, noVncRoot = '/usr/local/noVNC') {
+module.exports = function prepareWeb(taskDir, noVncRoot = '/usr/local/noVNC', standardClient = false) {
     const root = path.join(taskDir, 'mrview-web');
     fs.mkdirSync(root, { recursive: true });
     for (const name of ['core', 'vendor']) {
@@ -13,6 +13,11 @@ module.exports = function prepareWeb(taskDir, noVncRoot = '/usr/local/noVNC') {
         }
         const target = path.join(root, name);
         if (!fs.existsSync(target)) fs.symlinkSync(source, target, 'dir');
+    }
+    if (standardClient) {
+        fs.copyFileSync(path.join(noVncRoot, 'vnc_lite.html'), path.join(root, 'vnc_lite.html'));
+        fs.copyFileSync(path.join(noVncRoot, 'vnc_lite.html'), path.join(root, 'vnc.html'));
+        return root;
     }
     for (const name of ['mrview.html', 'mrview-gestures.js'])
         fs.copyFileSync(path.join(__dirname, name), path.join(root, name));

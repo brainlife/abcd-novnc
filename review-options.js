@@ -13,7 +13,7 @@ module.exports = function reviewOptions(config) {
 // Remote competition images are downloaded by the dedicated viewer itself. Its
 // own task directory supplies the existing noVNC mount contract, with no data task.
 module.exports.resolveInput = function resolveInput(config, cwd) {
-    if(!['fsleyes-review', 'mrview-combo'].includes(config.type) || config.input_self !== true) return config;
+    if(!['fsleyes-review', 'mrview-combo', 'itksnap-combo'].includes(config.type) || config.input_self !== true) return config;
     const path = require('path');
     return Object.assign({}, config, {
         input_instance_id: path.basename(path.dirname(cwd)),

@@ -93,6 +93,7 @@ const mappings = {
     "mrview-combo": "brainlife/vncserver-mrview:5.2",
     dsistudio: "brainlife/ui-dsistudio:1.0",
     itksnap: "brainlife/ui-itksnap:5.0.9",
+    "itksnap-combo": "brainlife/ui-itksnap:4.2.2-combo",
     brainstorm: "brainlife/ui-brainstorm:210128",
 
     //web apps
@@ -356,14 +357,17 @@ function startNOVNC(cb) {
             opts = opts.concat(['-e', 'X11VNC_PASSWORD='+password]);
             opts = opts.concat(require('./review-options')(config));
             opts = opts.concat(comboOptions);
-            opts = opts.concat(['-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro']);
-            opts = opts.concat(['-e', 'LD_LIBRARY_PATH=/usr/lib/host']);
-            if(config.type !== 'mrview-combo') opts = opts.concat(['-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro']);
-            if(config.type !== 'mrview-combo') opts = opts.concat(['-v', abs_inst_dir+':/input-instance:ro']);
-            if(config.type !== 'mrview-combo') opts = opts.concat(['-v', abs_src_path+':/input:ro']);//deprecated.. use /input-instance
-            opts = opts.concat(['-v', abs_task_dir+'/lib:/usr/lib/host:ro']);
+            // ITK-SNAP's software-rendered desktop owns its X socket and runtime libraries.
+            if (config.type !== 'itksnap-combo') {
+                opts = opts.concat(['-v', '/tmp/.X11-unix:/tmp/.X11-unix:ro']);
+                opts = opts.concat(['-e', 'LD_LIBRARY_PATH=/usr/lib/host']);
+                opts = opts.concat(['-v', abs_task_dir+'/lib:/usr/lib/host:ro']);
+            }
+            if(!['mrview-combo', 'itksnap-combo'].includes(config.type)) opts = opts.concat(['-v', '/usr/local/licensed-bin:/usr/local/licensed-bin:ro']);
+            if(!['mrview-combo', 'itksnap-combo'].includes(config.type)) opts = opts.concat(['-v', abs_inst_dir+':/input-instance:ro']);
+            if(!['mrview-combo', 'itksnap-combo'].includes(config.type)) opts = opts.concat(['-v', abs_src_path+':/input:ro']);//deprecated.. use /input-instance
 
-            if(gpus.length) {
+            if(gpus.length && config.type !== 'itksnap-combo') {
                 //decide on VGL_DISPLAY to use
                 let dindex = Math.floor(Math.random()*gpus.length);
                 let display = [":0.0", ":0.1"][dindex];
@@ -410,8 +414,8 @@ function startNOVNC(cb) {
             const novnc_out = fs.openSync('./novnc.log', 'a');
             const novnc_err = fs.openSync('./novnc.log', 'a');
             const proxyArgs = ['--listen', port, '--vnc', docker_hostname+":"+vncPort];
-            if (config.type === 'mrview-combo') {
-                try { proxyArgs.push('--web', require('./mrview-web')(process.cwd())); }
+            if (['mrview-combo', 'itksnap-combo'].includes(config.type)) {
+                try { proxyArgs.push('--web', require('./mrview-web')(process.cwd(), undefined, config.type === 'itksnap-combo')); }
                 catch (err) { return next(err); }
             }
             const novnc = spawn('/usr/local/noVNC/utils/novnc_proxy', proxyArgs, {

@@ -121,7 +121,7 @@ test('no unverified partial download can be mounted or reused', () => fixture(as
 }));
 test('Docker exposes only selected files and rejects writes to the data bindings', {skip: !process.env.MRVIEW_DOCKER_SMOKE_IMAGE}, () => fixture(async f => {
     const mounts = await prepare(f.config, f.options);
-    const command = 'set -eu; test "$(find /scene/files -type f | wc -l)" -eq 2; for file in /scene/files/*; do test "$(cat "$file")" = original; if printf changed > "$file" 2>/dev/null; then exit 41; fi; done; test ! -e /input; test ! -e /input-instance; printf writable > /tmp/control';
+    const command = 'set -eu; test "$(find /scene -type f | wc -l)" -eq 2; for file in /scene/*; do test "$(cat "$file")" = original; if printf changed > "$file" 2>/dev/null; then exit 41; fi; done; test ! -e /input; test ! -e /input-instance; printf writable > /tmp/control';
     const result = require('child_process').spawnSync('docker', ['run', '--rm', '--pull=never', '--network=none', ...mounts, '--entrypoint', '/bin/sh', process.env.MRVIEW_DOCKER_SMOKE_IMAGE, '-c', command], {encoding:'utf8', timeout:60000});
     assert.equal(result.status, 0, result.stderr || String(result.error));
     for (const layer of f.manifest.layers) assert.equal(fs.readFileSync(path.join(f.sourceRoot, projectId, layer.datasetId, layer.path), 'utf8'), 'original');
@@ -282,3 +282,35 @@ test('launch uses readable bind aliases without changing source files', () => fi
     assert.equal(stored.layers[1].path, 'track.tck');
     assert.equal(fs.readFileSync(path.join(f.sourceRoot, projectId, tractId, 'track.tck'), 'utf8'), 'original');
 }));
+
+test('ITK-SNAP starts one process with base, additional images and multiple segmentations', () => fixture(async f => {
+    f.config.type = 'itksnap-combo'; f.manifest.audience = 'brainlife-itksnap';
+    f.manifest.layers[1].path = 'mask.nii.gz'; f.manifest.layers[1].role = 'segmentation';
+    f.manifest.layers[1].key = `archive/${projectId}/${tractId}/mask.nii.gz`;
+    for (const [name, role] of [['fa.nii.gz', 'overlay'], ['parc.nii.gz', 'segmentation']]) {
+        f.manifest.layers.push({...f.manifest.layers[1], path: name, key: `archive/${projectId}/${tractId}/${name}`, role});
+    }
+    f.manifest.totalBytes = 32; f.publish();
+    const binds = await prepare(f.config, f.options);
+    assert.equal(binds.length, 10);
+    assert(binds.filter((_, i) => i % 2).every(bind => bind.endsWith(',readonly')));
+    const startup = fs.readFileSync(path.join(f.task, 'mrview-combo/xstartup'), 'utf8');
+    assert.equal((startup.match(/exec itksnap/g) || []).length, 1);
+    assert.match(startup, /'-g' .* '-o' .* '-s' /);
+    assert(!startup.includes('-overlay') && !startup.includes('-fullscreen'));
+    assert(!startup.includes(f.config.mrview_token));
+    f.config.type = 'mrview-combo';
+    await assert.rejects(prepare(f.config, f.options), /mismatched/);
+}));
+
+
+test('segmentation display names describe the mask or parcellation instead of anatomy', () => {
+    const targets = prepare.displayPaths([
+        {role: 'base', path: 't1.nii.gz', label: 'T1w'},
+        {role: 'segmentation', path: 'mask.nii.gz', label: 'Brain mask'},
+        {role: 'segmentation', path: 'parc.nii.gz', label: 'Cortical parcels'},
+    ]);
+    assert.match(targets[1], /Brain.mask/);
+    assert.match(targets[2], /Cortical.parcels/);
+    assert(!targets[1].includes('T1w'));
+});
