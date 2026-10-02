@@ -52,7 +52,7 @@ function displayPaths(layers) {
             if (label && label.toLowerCase() !== name.toLowerCase()) name += '--' + label;
         } else if (layer.role === 'tract') name = label || (stem === 'track' ? 'Tract' : stem);
         else if (layer.role === 'segmentation') name = label || stem || 'Segmentation';
-        else name = 'T1w';
+        else name = /^(neuro\/)?anat\/t1w$/.test(String(layer.label || '')) || /^t1/i.test(stem) ? 'T1w' : label || stem || 'Base';
         name = slug(name).replace(/^-+|-+$/g, '') || 'Layer';
         const budget = 35 - '/scene/'.length - extension.length;
         let count = 1, target;
