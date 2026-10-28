@@ -46,7 +46,8 @@ function displayPaths(layers) {
         if (label.endsWith(suffix)) label = label.slice(0, -suffix.length);
         if (/^(neuro\/)?(tensor|anat\/t1w|track\/tck)$/.test(label)) label = '';
         let name;
-        if (layer.role === 'overlay') {
+        if (layer.role === 'odf') name = stem + (label ? '--' + label : '');
+        else if (layer.role === 'overlay' || (layer.role === 'base' && /(?:^|[_-])(fa|ad|md|rd|adc|cl|cp|cs)(?:[_-]|$)/i.test(stem))) {
             const map = stem.match(/(?:^|[_-])(fa|ad|md|rd|adc|cl|cp|cs)(?:[_-]|$)/i);
             name = map ? map[1].toUpperCase() : stem;
             if (label && label.toLowerCase() !== name.toLowerCase()) name += '--' + label;
@@ -123,7 +124,7 @@ function validateManifest(config, manifest, now = Date.now()) {
     const seen = new Set();
     for (const layer of manifest.layers) {
         if (layer.projectId !== manifest.projectId || !/^[a-f0-9]{24}$/i.test(layer.datasetId) ||
-            !(isItk ? ['base', 'overlay', 'segmentation'] : ['base', 'overlay', 'tract']).includes(layer.role) || !['s3fs', 's3fs-embargo'].includes(layer.storage) ||
+            !(isItk ? ['base', 'overlay', 'segmentation'] : ['base', 'overlay', 'tract', 'odf']).includes(layer.role) || !['s3fs', 's3fs-embargo'].includes(layer.storage) ||
             !Number.isSafeInteger(layer.size) || layer.size <= 0 || typeof layer.etag !== 'string') throw new Error('Invalid project file');
         relative(layer.path);
         const mode = layer.accessMode || 'mount-or-download';
@@ -136,6 +137,7 @@ function validateManifest(config, manifest, now = Date.now()) {
         if (![suffix, `archive/${suffix}`].includes(layer.key)) throw new Error('File escapes selected project');
         if (isItk && !/\.nii(\.gz)?$/i.test(layer.path)) throw new Error('ITK-SNAP requires NIfTI image files');
         if (!(layer.role === 'tract' ? /\.tck$/i : /\.(nii|mif)(\.gz)?$/i).test(layer.path)) throw new Error('Invalid file format');
+        if (layer.role === 'odf' && !/(^|\/)lmax\d+\.(nii|mif)(\.gz)?$/i.test(layer.path)) throw new Error('Invalid CSD file');
         const url = new URL(layer.url);
         if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Invalid download URL');
         const identity = `${layer.bucket}/${layer.key}`;
@@ -358,7 +360,7 @@ async function prepareCombo(config, options) {
     } else {
         let firstOverlay = true;
         for (const layer of layers.filter(layer => layer.role !== 'base')) {
-            args.push(layer.role === 'tract' ? '-tractography.load' : '-overlay.load', layer.containerPath);
+            args.push(layer.role === 'tract' ? '-tractography.load' : layer.role === 'odf' ? '-odf.load_sh' : '-overlay.load', layer.containerPath);
             if (layer.role === 'overlay') {
                 args.push('-overlay.opacity', '0.5', '-overlay.visible', firstOverlay && manifest.showTensorOnStart !== false ? '1' : '0');
                 firstOverlay = false;
